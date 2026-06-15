@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from config import m, g, k_d
+from config import m, g
 from dynamics import drone_dynamics
 
 # État initial
@@ -10,11 +10,8 @@ state0 = np.zeros(12)
 
 # Position initiale
 state0[2] = 1.0  # z = 1 m
-u_z = -k_d*state0[5]
-# Commande hover
-def z_pos(state):
-    u_z = -k_d*state[5]
-    f_hover = m*g + u_z*m
+
+f_hover = m*g
 
 control = np.array([
     f_hover,  # poussée totale
