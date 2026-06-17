@@ -4,8 +4,8 @@ from rotation import rotation_matrix
 
 def euler_rates(phi, theta, omega):
     """
-    Convertit les vitesses angulaires body omega = [p, q, r]
-    en dérivées des angles d'Euler [phi_dot, theta_dot, psi_dot].
+    Converts the body angular velocities omega = [p, q, r] 
+    to Euler angle derivatives [phi_dot, theta_dot, psi_dot].
     """
 
     p, q, r = omega
