@@ -11,7 +11,7 @@ state0 = np.zeros(12)
 # Position initiale
 state0[2] = 1.0  # z = 1 m
 
-f_hover = m*g
+f_hover = 0
 
 control = np.array([
     f_hover,  # poussée totale

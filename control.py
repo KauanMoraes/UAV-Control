@@ -26,11 +26,11 @@ KD_THETA = 3.0
 KP_PSI = 4.0
 KD_PSI = 1.5
 
-KP_X = 0.6
-KD_X = 1.2
+KP_X = 1.2
+KD_X = 2
 
-KP_Y = 0.6
-KD_Y = 1.2
+KP_Y = 1.2
+KD_Y = 2
 
 # Hypothèse small angles XY
 MAX_ANGLE = np.deg2rad(15)
