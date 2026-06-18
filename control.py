@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from Trajectoire import circular_trajectory
+from Trajectory import circular_trajectory
 from config import m, g
 from dynamics import drone_dynamics
 
@@ -32,10 +32,10 @@ KD_X = 2
 KP_Y = 1.2
 KD_Y = 2
 
-# Hypothèse small angles XY
+# Hypothesis of small angles XY
 MAX_ANGLE = np.deg2rad(15)
 
-# Consignes
+# References
 x_d = 2.0
 y_d = 1.0
 z_d = 1.0
@@ -152,7 +152,7 @@ for k in range(len(t)):
 
     state_k = sol.y[:, k]
 
-    # trajectoire désirée à l'instant t[k]
+    # Desired trajectory at instant t[k]
     x_d_k, y_d_k, vx_d_k, vy_d_k = circular_trajectory(t[k])
 
     phi_d_k, theta_d_k = xy_controller(
@@ -183,12 +183,12 @@ f_values = np.array(f_values)
 fig, axs = plt.subplots(3, 2, figsize=(14, 10))
 
 # ==========================
-# 1. Trajectoire XY
+# 1. Trajectory XY
 # ==========================
 axs[0, 0].plot(
     x,
     y,
-    label="Trajectoire réelle"
+    label="Real Trajectory"
 )
 
 axs[0, 0].plot(
@@ -196,9 +196,9 @@ axs[0, 0].plot(
     y_d_values,
     "--",
     linewidth=2,
-    label="Trajectoire désirée"
+    label="Desired Trajectory"
 )
-axs[0, 0].set_title("Trajectoire XY")
+axs[0, 0].set_title("Trajectory XY")
 axs[0, 0].set_xlabel("x [m]")
 axs[0, 0].set_ylabel("y [m]")
 axs[0, 0].grid(True)
@@ -211,31 +211,31 @@ axs[0, 0].legend()
 axs[0, 1].plot(
     t,
     x,
-    label="x réel"
+    label="x real"
 )
 
 axs[0, 1].plot(
     t,
     x_d_values,
     "--",
-    label="x désiré"
+    label="x desired"
 )
 
 axs[0, 1].plot(
     t,
     y,
-    label="y réel"
+    label="y real"
 )
 
 axs[0, 1].plot(
     t,
     y_d_values,
     "--",
-    label="y désiré"
+    label="y desired"
 )
 
-axs[0, 1].set_title("Suivi XY")
-axs[0, 1].set_xlabel("Temps [s]")
+axs[0, 1].set_title("Follow XY")
+axs[0, 1].set_xlabel("Time [s]")
 axs[0, 1].set_ylabel("Position [m]")
 axs[0, 1].grid(True)
 axs[0, 1].legend()
@@ -243,11 +243,11 @@ axs[0, 1].legend()
 # ==========================
 # 3. Altitude
 # ==========================
-axs[1, 0].plot(t, z, label="z réel")
-axs[1, 0].plot(t, z_d*np.ones_like(t), "--", label="z désiré")
+axs[1, 0].plot(t, z, label="z real")
+axs[1, 0].plot(t, z_d*np.ones_like(t), "--", label="z desired")
 
 axs[1, 0].set_title("Altitude")
-axs[1, 0].set_xlabel("Temps [s]")
+axs[1, 0].set_xlabel("Time [s]")
 axs[1, 0].set_ylabel("z [m]")
 axs[1, 0].grid(True)
 axs[1, 0].legend()
@@ -258,42 +258,42 @@ axs[1, 0].legend()
 axs[1, 1].plot(
     t,
     np.rad2deg(phi),
-    label="φ réel"
+    label="φ real"
 )
 
 axs[1, 1].plot(
     t,
     np.rad2deg(phi_d_values),
     "--",
-    label="φ désiré"
+    label="φ desired"
 )
 
 axs[1, 1].plot(
     t,
     np.rad2deg(theta),
-    label="θ réel"
+    label="θ real"
 )
 
 axs[1, 1].plot(
     t,
     np.rad2deg(theta_d_values),
     "--",
-    label="θ désiré"
+    label="θ desired"
 )
 
 axs[1, 1].set_title("Attitude")
-axs[1, 1].set_xlabel("Temps [s]")
+axs[1, 1].set_xlabel("Time [s]")
 axs[1, 1].set_ylabel("Angle [deg]")
 axs[1, 1].grid(True)
 axs[1, 1].legend()
 
 # ==========================
-# 5. Poussée
+# 5. Thrust
 # ==========================
 axs[2, 0].plot(t, f_values)
 
-axs[2, 0].set_title("Commande de poussée")
-axs[2, 0].set_xlabel("Temps [s]")
+axs[2, 0].set_title("Thrust Command")
+axs[2, 0].set_xlabel("Time [s]")
 axs[2, 0].set_ylabel("Force [N]")
 axs[2, 0].grid(True)
 
@@ -303,12 +303,12 @@ axs[2, 0].grid(True)
 ex = x_d_values - x
 ey = y_d_values - y
 
-axs[2, 1].plot(t, ex, label="erreur x")
-axs[2, 1].plot(t, ey, label="erreur y")
+axs[2, 1].plot(t, ex, label="error x")
+axs[2, 1].plot(t, ey, label="error y")
 
-axs[2, 1].set_title("Erreur de suivi")
-axs[2, 1].set_xlabel("Temps [s]")
-axs[2, 1].set_ylabel("Erreur [m]")
+axs[2, 1].set_title("Error of follow")
+axs[2, 1].set_xlabel("Time [s]")
+axs[2, 1].set_ylabel("Error [m]")
 axs[2, 1].grid(True)
 axs[2, 1].legend()
 

@@ -2,7 +2,7 @@ import numpy as np
 
 g = 9.81
 
-m = 1.5  # masse drone [kg]
+m = 1.5  # drone mass [kg]
 
 J = np.diag([
     0.025,  # Jx

@@ -5,16 +5,16 @@ from scipy.integrate import solve_ivp
 from config import m, g
 from dynamics import drone_dynamics
 
-# État initial
+# Initial state
 state0 = np.zeros(12)
 
-# Position initiale
+# Initial position
 state0[2] = 1.0  # z = 1 m
 
 f_hover = 0
 
 control = np.array([
-    f_hover,  # poussée totale
+    f_hover,  # total thrust
     0.0,      # tau_phi
     0.0,      # tau_theta
     0.0       # tau_psi
@@ -36,7 +36,7 @@ z = sol.y[2]
 
 plt.figure()
 plt.plot(t, z)
-plt.xlabel("Temps [s]")
+plt.xlabel("Time [s]")
 plt.ylabel("Altitude z [m]")
 plt.title("Simulation hover")
 plt.grid()
