@@ -1,15 +1,37 @@
-# drone/default_quadrotor.py
+from drone.drone import Drone
+
+from drone.state import DroneState
+
+from drone.parameters import (
+    DroneParameters
+)
+
+from dynamics.rigid_body import (
+    RigidBodyDynamics
+)
 
 import numpy as np
-from drone.parameters import DroneParameters
 
 
-DEFAULT_QUADROTOR = DroneParameters(
-    mass=1.5,
+def create_default_quadrotor():
 
-    inertia=np.diag([
-        0.025,
-        0.025,
-        0.045
-    ])
-)
+    parameters = DroneParameters(
+        mass=1.5,
+        inertia=np.diag([
+            0.025,
+            0.025,
+            0.045
+        ])
+    )
+
+    dynamics = RigidBodyDynamics(
+        parameters
+    )
+
+    state = DroneState.zero()
+
+    return Drone(
+        parameters=parameters,
+        dynamics=dynamics,
+        state=state
+    )
