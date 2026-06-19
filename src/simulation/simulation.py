@@ -4,9 +4,9 @@ import numpy as np
 
 from scipy.integrate import solve_ivp
 
-from simulation.result import SimulationResult
+from src.simulation.result import SimulationResult
 
-from drone.state import DroneState
+from src.drone.state import DroneState
 
 
 class Simulation:

@@ -1,7 +1,7 @@
-from drone.state import DroneState
-from drone.parameters import DroneParameters
+from src.drone.state import DroneState
+from src.drone.parameters import DroneParameters
 
-from dynamics.rigid_body import (
+from src.dynamics.rigid_body import (
     RigidBodyDynamics
 )
 

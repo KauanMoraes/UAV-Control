@@ -1,24 +1,24 @@
-from drone.default_quadrotor import (
+from src.drone.default_quadrotor import (
     create_default_quadrotor
 )
 
-from trajectories.circular import (
+from src.trajectories.circular import (
     CircularTrajectory
 )
 
-from controllers.position_controller import (
+from src.controllers.position_controller import (
     PositionController
 )
 
-from controllers.attitude_controller import (
+from src.controllers.attitude_controller import (
     AttitudeController
 )
 
-from controllers.altitude_controller import (
+from src.controllers.altitude_controller import (
     AltitudeController
 )
 
-from simulation.simulation import (
+from src.simulation.simulation import (
     Simulation
 )
 
@@ -57,3 +57,5 @@ simulation = Simulation(
 )
 
 result = simulation.run()
+
+print(result.__dict__.keys())

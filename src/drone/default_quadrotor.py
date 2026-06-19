@@ -1,15 +1,12 @@
-from drone.drone import Drone
+from src.drone.drone import Drone
+from src.drone.state import DroneState
 
-from drone.state import DroneState
-
-from drone.parameters import (
+from src.drone.parameters import (
     DroneParameters
 )
-
-from dynamics.rigid_body import (
+from src.dynamics.rigid_body import (
     RigidBodyDynamics
 )
-
 import numpy as np
 
 

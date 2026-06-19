@@ -1,8 +1,8 @@
 # trajectories/line.py
 
-from trajectories.base import Trajectory
+from src.trajectories.base import Trajectory
 
-from trajectories.reference import (
+from src.trajectories.reference import (
     TrajectoryReference
 )
 

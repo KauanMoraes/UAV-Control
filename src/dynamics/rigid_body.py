@@ -1,7 +1,7 @@
 import numpy as np
 
-from drone.parameters import DroneParameters
-from drone.state import DroneState
+from src.drone.parameters import DroneParameters
+from src.drone.state import DroneState
 
 from rotation import rotation_matrix
 

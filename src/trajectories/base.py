@@ -3,7 +3,7 @@
 from abc import ABC
 from abc import abstractmethod
 
-from trajectories.reference import (
+from src.trajectories.reference import (
     TrajectoryReference
 )
 
