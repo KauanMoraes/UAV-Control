@@ -22,6 +22,19 @@ from src.simulation.simulation import (
     Simulation
 )
 
+from src.visualization.trajectory import (
+    plot_xy_trajectory
+)
+
+from src.visualization.attitude import (
+    plot_attitude
+)
+
+from src.visualization.controls import (
+    plot_controls
+)
+
+
 drone = create_default_quadrotor()
 
 trajectory = CircularTrajectory()
@@ -59,3 +72,9 @@ simulation = Simulation(
 result = simulation.run()
 
 print(result.__dict__.keys())
+
+plot_xy_trajectory(result)
+
+plot_attitude(result)
+
+plot_controls(result)
