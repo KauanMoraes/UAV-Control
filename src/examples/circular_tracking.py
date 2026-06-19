@@ -73,8 +73,17 @@ result = simulation.run()
 
 print(result.__dict__.keys())
 
-plot_xy_trajectory(result)
+plot_xy_trajectory(
+    result,
+    "results/trajectory.png"
+)
 
-plot_attitude(result)
+plot_attitude(
+    result,
+    "results/attitude.png"
+)
 
-plot_controls(result)
+plot_controls(
+    result,
+    "results/controls.png"
+)
