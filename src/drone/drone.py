@@ -16,7 +16,5 @@ class Drone:
     ):
 
         self.parameters = parameters
-
         self.dynamics = dynamics
-
         self.state = state

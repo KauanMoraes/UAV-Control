@@ -1,12 +1,8 @@
 from src.drone.drone import Drone
 from src.drone.state import DroneState
+from src.drone.parameters import DroneParameters
 
-from src.drone.parameters import (
-    DroneParameters
-)
-from src.dynamics.rigid_body import (
-    RigidBodyDynamics
-)
+from src.dynamics.rigid_body import RigidBodyDynamics
 import numpy as np
 
 
@@ -21,10 +17,7 @@ def create_default_quadrotor():
         ])
     )
 
-    dynamics = RigidBodyDynamics(
-        parameters
-    )
-
+    dynamics = RigidBodyDynamics(parameters=parameters)
     state = DroneState.zero()
 
     return Drone(

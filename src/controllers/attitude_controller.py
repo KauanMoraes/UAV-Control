@@ -30,31 +30,12 @@ class AttitudeController:
         psi_ref=0.0
     ):
 
-        phi, theta, psi = (
-            state.attitude
-        )
+        phi, theta, psi = state.attitude
+        p, q, r = state.angular_velocity
 
-        p, q, r = (
-            state.angular_velocity
-        )
-
-        tau_phi = (
-            self.kp_phi
-            * (phi_ref - phi)
-            - self.kd_phi * p
-        )
-
-        tau_theta = (
-            self.kp_theta
-            * (theta_ref - theta)
-            - self.kd_theta * q
-        )
-
-        tau_psi = (
-            self.kp_psi
-            * (psi_ref - psi)
-            - self.kd_psi * r
-        )
+        tau_phi = self.kp_phi * (phi_ref - phi) - self.kd_phi * p
+        tau_theta = self.kp_theta * (theta_ref - theta) - self.kd_theta * q
+        tau_psi = self.kp_psi * (psi_ref - psi) - self.kd_psi * r
 
         return (
             tau_phi,

@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 import numpy as np
 
-
 @dataclass
 class DroneState:
     """
@@ -34,7 +33,6 @@ class DroneState:
 
     @classmethod
     def from_vector(cls, vector: np.ndarray):
-
         return cls(
             position=vector[0:3],
             velocity=vector[3:6],
@@ -43,7 +41,6 @@ class DroneState:
         )
 
     def to_vector(self):
-
         return np.concatenate([
             self.position,
             self.velocity,

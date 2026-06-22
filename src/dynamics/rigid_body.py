@@ -12,21 +12,12 @@ class RigidBodyDynamics:
     Newton-Euler equations.
     """
 
-    def __init__(
-        self,
-        parameters: DroneParameters
-    ):
+    def __init__(self, parameters: DroneParameters):
         self.parameters = parameters
 
-    def euler_rates(
-        self,
-        phi,
-        theta,
-        omega
-    ):
+    def euler_rates(self, phi, theta, omega):
 
         p, q, r = omega
-
         cphi = np.cos(phi)
         sphi = np.sin(phi)
 
@@ -41,54 +32,22 @@ class RigidBodyDynamics:
 
         return E @ omega
 
-    def derivatives(
-        self,
-        t,
-        state_vector,
-        control
-    ):
+    def derivatives(self, t, state_vector, control):
 
-        state = DroneState.from_vector(
-            state_vector
-        )
+        state = DroneState.from_vector(state_vector)
 
         phi, theta, psi = state.attitude
-
         omega = state.angular_velocity
-
         thrust = control[0]
 
-        tau = np.array(
-            control[1:4]
-        )
+        tau = np.array(control[1:4])
+        R = rotation_matrix(phi, theta, psi)
 
-        R = rotation_matrix(
-            phi,
-            theta,
-            psi
-        )
+        gravity = np.array([0, 0, -self.parameters.gravity])
+        thrust_body = np.array([0, 0, thrust])
 
-        gravity = np.array([
-            0,
-            0,
-            -self.parameters.gravity
-        ])
-
-        thrust_body = np.array([
-            0,
-            0,
-            thrust
-        ])
-
-        thrust_inertial = (
-            R @ thrust_body
-        )
-
-        velocity_dot = (
-            gravity
-            + thrust_inertial
-            / self.parameters.mass
-        )
+        thrust_inertial = (R @ thrust_body)
+        velocity_dot = gravity + (thrust_inertial / self.parameters.mass)
 
         omega_dot = (
             self.parameters.inertia_inv
@@ -102,17 +61,8 @@ class RigidBodyDynamics:
             )
         )
 
-        position_dot = (
-            state.velocity
-        )
-
-        attitude_dot = (
-            self.euler_rates(
-                phi,
-                theta,
-                omega
-            )
-        )
+        position_dot = state.velocity
+        attitude_dot = self.euler_rates(phi, theta, omega)
 
         derivative = DroneState(
             position=position_dot,

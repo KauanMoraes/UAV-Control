@@ -2,8 +2,8 @@ import numpy as np
 
 def rotation_matrix(phi, theta, psi):
     """
-    Matrice de rotation body -> inertiel
-    Angles d'Euler ZYX : yaw psi, pitch theta, roll phi
+        Rotation matrix from body frame to inertial frame.
+        ZYX Euler angles: yaw (psi), pitch (theta), roll (phi).
     """
 
     cphi, sphi = np.cos(phi), np.sin(phi)

@@ -1,7 +1,6 @@
 # simulation/result.py
 
 from dataclasses import dataclass
-
 import numpy as np
 
 
@@ -23,9 +22,7 @@ class SimulationResult:
     """
 
     time: np.ndarray
-
     states: np.ndarray
-
     controls: np.ndarray
 
     @property

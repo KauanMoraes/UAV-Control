@@ -1,12 +1,8 @@
 # src/visualization/trajectory.py
 
 from pathlib import Path
-
 import matplotlib.pyplot as plt
-
-from src.simulation.result import (
-    SimulationResult
-)
+from src.simulation.result import SimulationResult
 
 
 def plot_xy_trajectory(
