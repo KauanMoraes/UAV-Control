@@ -60,10 +60,10 @@ Desired Trajectory
 | Roll φ | KP_PHI = 10.0 | KD_PHI = 2.0 | 20.0 rad/s | 2.0 |
 | Pitch θ | KP_THETA = 10.0 | KD_THETA = 2.0 | 20.0 rad/s | 2.0 |
 | Yaw ψ | KP_PSI = 4.0 | KD_PSI = 1.5 | — | — |
-| Position X | KP_X = 2.0 | KD_X = 2.8 | 1.41 rad/s | 0.99 |
-| Position Y | KP_Y = 2.0 | KD_Y = 2.8 | 1.41 rad/s | 0.99 |
+| Position X | KP_X = 3.0 | KD_X = 3.1 | 1.73 rad/s | 0.90 |
+| Position Y | KP_Y = 3.0 | KD_Y = 3.1 | 1.73 rad/s | 0.90 |
 
-> Frequency separation: ωn_attitude / ωn_XY = 20.0 / 1.10 = **18.2×** ✓
+> Frequency separation: ωn_attitude / ωn_XY = 20.0 / 1.73 = **11.6×** ✓
 
 ---
 
@@ -96,18 +96,18 @@ The drone starts at (0, 0, 0). The initial XY error is therefore **2.0 m** (dist
 
 | Metric | Value |
 |---|---|
-| Metric | Baseline | Steps 1&2 | **Step 3** | Δ vs baseline |
-|---|---|---|---|---|
-| Maximum tracking error ‖e_xy‖ | 2.000 m | 2.000 m | **2.000 m** | — (initial geometry) |
-| Convergence time (‖e_xy‖ ≤ 0.2 m) | 2.30 s | 2.54 s | **1.94 s** | ✅ −16% |
-| Steady-state error X | 13.04 cm | 13.00 cm | **7.76 cm** | ✅ −40% |
-| Steady-state error Y | 5.21 cm | 5.13 cm | **3.39 cm** | ✅ −35% |
+| Metric | Baseline | Steps 1&2 | Step 3 | **Final** | Δ vs baseline |
+|---|---|---|---|---|---|
+| Maximum tracking error ‖e_xy‖ | 2.000 m | 2.000 m | 2.000 m | **2.000 m** | — (initial geometry) |
+| Convergence time (‖e_xy‖ ≤ 0.2 m) | 2.30 s | 2.54 s | 1.94 s | **1.77 s** | ✅ −23% |
+| Steady-state error X | 13.04 cm | 13.00 cm | 7.76 cm | **5.24 cm** | ✅ −60% |
+| Steady-state error Y | 5.21 cm | 5.13 cm | 3.39 cm | **2.25 cm** | ✅ −57% |
 
 > τ is not relevant for X and Y on a circular trajectory (sinusoidal reference with no constant final value). The appropriate metrics are the steady-state tracking error and the convergence time.
 
 > The maximum tracking error (2.0 m) is fixed by the initial geometry — the drone starts at (0,0) while the circle starts at (2,0) — and cannot be reduced by gain tuning alone. It would require a smoother trajectory initialisation.
 
-> Steps 1&2 (Z and attitude tuning) temporarily worsened convergence (2.30→2.54 s) by making the attitude loop more aggressive without touching XY gains. Step 3 (KP_X/Y 1.2→2.0, KD_X/Y 2.0→2.8) recovered and surpassed the baseline on all XY metrics, bringing convergence to 1.94 s and halving the steady-state tracking errors.
+> Steps 1&2 (Z and attitude tuning) temporarily worsened convergence (2.30→2.54 s) by making the attitude loop more aggressive without touching XY gains. Step 3 and the final adjustment (KP_X/Y 1.2→3.0, KD_X/Y 2.0→3.1, KD_PHI/THETA 6.0→2.0) progressively improved all metrics, achieving the best results: convergence 1.77 s (−23%) and SSE reduced ~60% on both axes.
 
 ---
 
@@ -236,7 +236,7 @@ KD_PHI = 0.72 (ζ = 0.72, slightly underdamped) was tested and **rejected** — 
 ωn  = √(10.0 / 0.025) = 20.0 rad/s
 ζ   = 2.0 / (2·√(10·0.025)) = 2.0   → overdamped
 ```
-Although ζ = 2.0 is overdamped, the attitude natural frequency (20 rad/s) is already 18× faster than the XY outer loop (1.1 rad/s), well above the required 5× separation. The overdamping avoids attitude oscillations that would destabilize XY tracking — a deliberate trade-off favouring XY performance over attitude speed.
+Although ζ = 2.0 is overdamped, the attitude natural frequency (20 rad/s) is already 11.6× faster than the final XY outer loop (1.73 rad/s), well above the required 5× separation. The overdamping avoids attitude oscillations that would destabilize XY tracking — a deliberate trade-off favouring XY performance over attitude speed.
 
 ---
 

@@ -18,19 +18,19 @@ KD_Z = 5
 
 # Gains attitude inner loop
 KP_PHI = 10
-KD_PHI = 6.0
+KD_PHI = 2.0
 
 KP_THETA = 10
-KD_THETA = 6.0
+KD_THETA = 2.0
 
 KP_PSI = 4.0
 KD_PSI = 1.5
 
-KP_X = 2.0
-KD_X = 2.8
+KP_X = 3.0
+KD_X = 3.1
 
-KP_Y = 2.0
-KD_Y = 2.8
+KP_Y = 3.0
+KD_Y = 3.1
 
 # Hypothesis of small angles XY
 MAX_ANGLE = np.deg2rad(15)
