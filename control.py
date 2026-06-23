@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from Trajectory import circular_trajectory
+from Trajectory import circular_trajectory, line_trajectory
 from config import m, g
 from dynamics import drone_dynamics
 
@@ -13,24 +13,24 @@ y_d = 1.0
 z_d = 1.0
 
 # Gains altitude
-KP_Z = 6.0
-KD_Z = 4.0
+KP_Z = 8.5
+KD_Z = 5
 
 # Gains attitude inner loop
-KP_PHI = 8.0
-KD_PHI = 3.0
+KP_PHI = 10
+KD_PHI = 6.0
 
-KP_THETA = 8.0
-KD_THETA = 3.0
+KP_THETA = 10
+KD_THETA = 6.0
 
 KP_PSI = 4.0
 KD_PSI = 1.5
 
-KP_X = 1.2
-KD_X = 2
+KP_X = 2.0
+KD_X = 2.8
 
-KP_Y = 1.2
-KD_Y = 2
+KP_Y = 2.0
+KD_Y = 2.8
 
 # Hypothesis of small angles XY
 MAX_ANGLE = np.deg2rad(15)
@@ -99,8 +99,8 @@ def attitude_controller(state, phi_d, theta_d, psi_d=0.0):
     return tau_phi, tau_theta, tau_psi
 
 
-def closed_loop_dynamics(t, state):
-    x_d_t, y_d_t, vx_d_t, vy_d_t = circular_trajectory(t)
+def closed_loop_dynamics(t, state, traj_fn=circular_trajectory):
+    x_d_t, y_d_t, vx_d_t, vy_d_t = traj_fn(t)
     phi_d, theta_d = xy_controller(
         state,
         x_d_t,
@@ -116,201 +116,6 @@ def closed_loop_dynamics(t, state):
         psi_d=0.0
     )
 
-    control = np.array([
-        f,
-        tau_phi,
-        tau_theta,
-        tau_psi
-    ])
+    control = np.array([f, tau_phi, tau_theta, tau_psi])
     return drone_dynamics(t, state, control)
 
-state0 = np.zeros(12)
-
-t_span = (0, 25)
-t_eval = np.linspace(0, 25, 5000)
-
-sol = solve_ivp(closed_loop_dynamics, t_span, state0, t_eval=t_eval)
-
-t = sol.t
-
-x = sol.y[0]
-y = sol.y[1]
-z = sol.y[2]
-
-phi = sol.y[6]
-theta = sol.y[7]
-psi = sol.y[8]
-
-phi_d_values = []
-theta_d_values = []
-f_values = []
-
-x_d_values = []
-y_d_values = []
-
-for k in range(len(t)):
-
-    state_k = sol.y[:, k]
-
-    # Desired trajectory at instant t[k]
-    x_d_k, y_d_k, vx_d_k, vy_d_k = circular_trajectory(t[k])
-
-    phi_d_k, theta_d_k = xy_controller(
-        state_k,
-        x_d_k,
-        y_d_k,
-        vx_d_k,
-        vy_d_k
-    )
-
-    f_k = control_z(state_k)
-
-    x_d_values.append(x_d_k)
-    y_d_values.append(y_d_k)
-
-    phi_d_values.append(phi_d_k)
-    theta_d_values.append(theta_d_k)
-    f_values.append(f_k)
-
-x_d_values = np.array(x_d_values)
-y_d_values = np.array(y_d_values)
-
-phi_d_values = np.array(phi_d_values)
-theta_d_values = np.array(theta_d_values)
-f_values = np.array(f_values)
-
-
-fig, axs = plt.subplots(3, 2, figsize=(14, 10))
-
-# ==========================
-# 1. Trajectory XY
-# ==========================
-axs[0, 0].plot(
-    x,
-    y,
-    label="Real Trajectory"
-)
-
-axs[0, 0].plot(
-    x_d_values,
-    y_d_values,
-    "--",
-    linewidth=2,
-    label="Desired Trajectory"
-)
-axs[0, 0].set_title("Trajectory XY")
-axs[0, 0].set_xlabel("x [m]")
-axs[0, 0].set_ylabel("y [m]")
-axs[0, 0].grid(True)
-axs[0, 0].axis("equal")
-axs[0, 0].legend()
-
-# ==========================
-# 2. Position X et Y
-# ==========================
-axs[0, 1].plot(
-    t,
-    x,
-    label="x real"
-)
-
-axs[0, 1].plot(
-    t,
-    x_d_values,
-    "--",
-    label="x desired"
-)
-
-axs[0, 1].plot(
-    t,
-    y,
-    label="y real"
-)
-
-axs[0, 1].plot(
-    t,
-    y_d_values,
-    "--",
-    label="y desired"
-)
-
-axs[0, 1].set_title("Follow XY")
-axs[0, 1].set_xlabel("Time [s]")
-axs[0, 1].set_ylabel("Position [m]")
-axs[0, 1].grid(True)
-axs[0, 1].legend()
-
-# ==========================
-# 3. Altitude
-# ==========================
-axs[1, 0].plot(t, z, label="z real")
-axs[1, 0].plot(t, z_d*np.ones_like(t), "--", label="z desired")
-
-axs[1, 0].set_title("Altitude")
-axs[1, 0].set_xlabel("Time [s]")
-axs[1, 0].set_ylabel("z [m]")
-axs[1, 0].grid(True)
-axs[1, 0].legend()
-
-# ==========================
-# 4. Attitude
-# ==========================
-axs[1, 1].plot(
-    t,
-    np.rad2deg(phi),
-    label="φ real"
-)
-
-axs[1, 1].plot(
-    t,
-    np.rad2deg(phi_d_values),
-    "--",
-    label="φ desired"
-)
-
-axs[1, 1].plot(
-    t,
-    np.rad2deg(theta),
-    label="θ real"
-)
-
-axs[1, 1].plot(
-    t,
-    np.rad2deg(theta_d_values),
-    "--",
-    label="θ desired"
-)
-
-axs[1, 1].set_title("Attitude")
-axs[1, 1].set_xlabel("Time [s]")
-axs[1, 1].set_ylabel("Angle [deg]")
-axs[1, 1].grid(True)
-axs[1, 1].legend()
-
-# ==========================
-# 5. Thrust
-# ==========================
-axs[2, 0].plot(t, f_values)
-
-axs[2, 0].set_title("Thrust Command")
-axs[2, 0].set_xlabel("Time [s]")
-axs[2, 0].set_ylabel("Force [N]")
-axs[2, 0].grid(True)
-
-# ==========================
-# 5. Error Following
-# ==========================
-ex = x_d_values - x
-ey = y_d_values - y
-
-axs[2, 1].plot(t, ex, label="error x")
-axs[2, 1].plot(t, ey, label="error y")
-
-axs[2, 1].set_title("Error of follow")
-axs[2, 1].set_xlabel("Time [s]")
-axs[2, 1].set_ylabel("Error [m]")
-axs[2, 1].grid(True)
-axs[2, 1].legend()
-
-plt.tight_layout()
-plt.show()
