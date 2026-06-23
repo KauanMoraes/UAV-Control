@@ -26,6 +26,7 @@ KD_THETA = 2.0
 KP_PSI = 4.0
 KD_PSI = 1.5
 
+
 KP_X = 3.0
 KD_X = 3.1
 
@@ -34,6 +35,11 @@ KD_Y = 3.1
 
 # Hypothesis of small angles XY
 MAX_ANGLE = np.deg2rad(15)
+
+# Disturbance — wind step force in inertial frame [N]
+DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
+DIST_START = 5.0                          # onset time [s]
+DIST_END   = 15.0                         # end time [s]
 
 # References
 x_d = 2.0
@@ -117,5 +123,11 @@ def closed_loop_dynamics(t, state, traj_fn=circular_trajectory):
     )
 
     control = np.array([f, tau_phi, tau_theta, tau_psi])
-    return drone_dynamics(t, state, control)
+    state_dot = drone_dynamics(t, state, control)
+
+    # Apply wind disturbance as external force on velocity states
+    if DIST_START <= t <= DIST_END:
+        state_dot[3:6] += DIST_FORCE / m
+
+    return state_dot
 

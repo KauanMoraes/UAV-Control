@@ -55,6 +55,7 @@ def drone_dynamics(t, state, control):
     # Rotation Newton-Euler
     omega_dot = J_inv @ (tau - np.cross(omega, J @ omega))
 
+
     # Cinematics
     p_dot = v
     angles_dot = euler_rates(phi, theta, omega)

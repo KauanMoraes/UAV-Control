@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from control import closed_loop_dynamics, xy_controller, control_z, z_d
+from control import closed_loop_dynamics, xy_controller, control_z, z_d, DIST_FORCE, DIST_START, DIST_END
 from Trajectory import circular_trajectory, line_trajectory
 
 state0 = np.zeros(12)
@@ -161,6 +161,9 @@ axs[0, 1].plot(
     label="y desired"
 )
 
+axs[0, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red", label=f"wind {DIST_FORCE[0]:.0f}N")
+axs[0, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
+axs[0, 1].axvline(DIST_END,   color="red", linestyle="--", linewidth=0.9)
 axs[0, 1].set_title("Follow XY")
 axs[0, 1].set_xlabel("Time [s]")
 axs[0, 1].set_ylabel("Position [m]")
@@ -275,6 +278,15 @@ axs[2, 0].grid(True)
 axs[2, 1].plot(t, e_x, label="error x")
 axs[2, 1].plot(t, e_y, label="error y")
 axs[2, 1].plot(t, e_xy, "k--", linewidth=0.8, label="||e_xy||")
+
+# Disturbance window
+axs[2, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red")
+axs[2, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
+axs[2, 1].axvline(DIST_END,   color="red", linestyle="--", linewidth=0.9)
+axs[2, 1].text(
+    (DIST_START + DIST_END) / 2, 0.02,
+    f"wind {DIST_FORCE[0]:.0f}N", ha="center", fontsize=8, color="red"
+)
 
 # Seuil de convergence et annotation
 axs[2, 1].axhline(SEUIL_XY, color="orange", linestyle="--", linewidth=0.8,
