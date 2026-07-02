@@ -3,7 +3,7 @@ import numpy as np
 def rotation_matrix(phi, theta, psi):
     """
     Rotation body Matrix -> inertial
-    Euler Angles ZYX : yaw psi, pitch theta, roll phi
+    Euler Angles ZYX : yaw psi, pitch theta, roll phi -> Global: North, East, Down
     """
 
     cphi, sphi = np.cos(phi), np.sin(phi)

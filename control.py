@@ -65,7 +65,10 @@ def  control_z(state):
 
 
 
-def xy_controller(state, x_d, y_d, vx_d=0.0, vy_d=0.0):
+def xy_controller(state, x_d, y_d, f, vx_d=0.0, vy_d=0.0):
+    R_psi = np.array([np.cos(state[8]),-np.sin(state[8])],
+                     [np.sin(state[8]),np.cos(state[8])])
+    R_psi_inv = np.linalg.inv(R_psi)
     x = state[0]
     y = state[1]
 
@@ -78,11 +81,13 @@ def xy_controller(state, x_d, y_d, vx_d=0.0, vy_d=0.0):
     evx = vx_d - vx
     evy = vy_d - vy
 
-    ax_des = KP_X * ex + KD_X * evx
-    ay_des = KP_Y * ey + KD_Y * evy
+    U_x = KP_X * ex + KD_X * evx
+    U_y = KP_Y * ey + KD_Y * evy
+    Uxy = np.array([U_x,U_y])
 
-    theta_d = ax_des / g
-    phi_d = -ay_des / g
+    arr_thphi = R_psi_inv@Uxy *m/f
+    phi_d = -np.arcsin(arr_thphi[1])
+    theta_d = np.arcsin(arr_thphi[0]/np.cos(phi_d))
 
     theta_d = np.clip(theta_d, -MAX_ANGLE, MAX_ANGLE)
     phi_d = np.clip(phi_d, -MAX_ANGLE, MAX_ANGLE)
