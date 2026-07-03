@@ -1,5 +1,5 @@
 import numpy as np # type: ignore
-from config import m, g, J, J_inv
+from config import m, g, J, J_inv, Jja, Jjb
 from rotation import rotation_matrix
 
 def euler_rates(phi, theta, omega):
@@ -53,7 +53,7 @@ def drone_dynamics(t, state, control):
     v_dot = gravity + thrust_inertial / m
 
     # Rotation Newton-Euler
-    omega_dot = J_inv @ (tau - np.cross(omega, J @ omega))
+    omega_dot = np.linalg.inv(Jjb) @ (tau - np.cross(omega, Jja @ omega))
 
 
     # Cinematics

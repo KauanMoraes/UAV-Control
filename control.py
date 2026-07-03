@@ -65,7 +65,7 @@ def  control_z(state):
 
 
 
-def xy_controller(state, x_d, y_d, f, vx_d=0.0, vy_d=0.0):
+def xy_controller(state, f, x_d, y_d, vx_d=0.0, vy_d=0.0):
     R_psi = np.array([np.cos(state[8]),-np.sin(state[8])],
                      [np.sin(state[8]),np.cos(state[8])])
     R_psi_inv = np.linalg.inv(R_psi)
@@ -112,14 +112,15 @@ def attitude_controller(state, phi_d, theta_d, psi_d=0.0):
 
 def closed_loop_dynamics(t, state, traj_fn=circular_trajectory):
     x_d_t, y_d_t, vx_d_t, vy_d_t = traj_fn(t)
+    f = control_z(state)
     phi_d, theta_d = xy_controller(
         state,
+        f,
         x_d_t,
         y_d_t,
         vx_d_t,
         vy_d_t
     )
-    f = control_z(state)
     tau_phi, tau_theta, tau_psi = attitude_controller(
         state,
         phi_d,
