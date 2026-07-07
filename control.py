@@ -3,137 +3,146 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 from Trajectory import circular_trajectory, line_trajectory
-from config import m, g
+from config import m, g, Jja,Jjb
 from dynamics import drone_dynamics
 
+class Controller:
+    def __init__(self):
+        self.load_parameters()
 
-# Order
-x_d = 2.0
-y_d = 1.0
-z_d = 1.0
+    def load_parameters(self):
+        self.f = 0.0
+        self.m = m
+        self.g = g
+        self.Jja = Jja
+        self.Jjb = Jjb
+        # Order
+        self.x_d = 2.0
+        self.y_d = 1.0
+        self.z_d = 1.0
 
-# Gains altitude
-KP_Z = 8.5
-KD_Z = 5
+        # Gains altitude
+        self.KP_Z = 8.5
+        self.KD_Z = 5
 
-# Gains attitude inner loop
-KP_PHI = 10
-KD_PHI = 2.0
+        # Gains attitude inner loop
+        self.KP_PHI = 10
+        self.KD_PHI = 2.0
 
-KP_THETA = 10
-KD_THETA = 2.0
+        self.KP_THETA = 10
+        self.KD_THETA = 2.0
 
-KP_PSI = 4.0
-KD_PSI = 1.5
+        self.KP_PSI = 4.0
+        self.KD_PSI = 1.5
 
+        self.KP_X = 3.0
+        self.KD_X = 3.1
 
-KP_X = 3.0
-KD_X = 3.1
+        self.KP_Y = 3.0
+        self.KD_Y = 3.1
 
-KP_Y = 3.0
-KD_Y = 3.1
+        # Hypothesis of small angles XY
+        self.MAX_ANGLE = np.deg2rad(15)
 
-# Hypothesis of small angles XY
-MAX_ANGLE = np.deg2rad(15)
+        # Disturbance — wind step force in inertial frame [N]
+        self.DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
+        self.DIST_START = 5.0                          # onset time [s]
+        self.DIST_END   = 15.0                         # end time [s]
 
-# Disturbance — wind step force in inertial frame [N]
-DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
-DIST_START = 5.0                          # onset time [s]
-DIST_END   = 15.0                         # end time [s]
-
-# References
-x_d = 2.0
-y_d = 1.0
-z_d = 1.0
+        # References
+        self.x_d = 2.0
+        self.y_d = 1.0
+        self.z_d = 1.0
     
     
-def  control_z(state):
-    z = state[2]
-    z_dot = state[5]
-    phi = state[6]
-    theta = state[7]
+    def  control_z(self,state):
+        z = state[2]
+        z_dot = state[5]
+        phi = state[6]
+        theta = state[7]
 
-    e_z = z_d - z
-    e_dot_z = - z_dot
-    kh = np.cos(phi) * np.cos(theta)
+        e_z = self.z_d - z
+        e_dot_z = - z_dot
+        kh = np.cos(phi) * np.cos(theta)
 
-    u_z = KP_Z*e_z + KD_Z*e_dot_z #Control law for altitude
+        u_z = self.KP_Z*e_z + self.KD_Z*e_dot_z #Control law for altitude
 
-    f = m * (g + u_z) / kh
+        f = self.m * (self.g + u_z) / kh
 
-    return f
-
-
-
-def xy_controller(state, f, x_d, y_d, vx_d=0.0, vy_d=0.0):
-    R_psi = np.array([np.cos(state[8]),-np.sin(state[8])],
-                     [np.sin(state[8]),np.cos(state[8])])
-    R_psi_inv = np.linalg.inv(R_psi)
-    x = state[0]
-    y = state[1]
-
-    vx = state[3]
-    vy = state[4]
-
-    ex = x_d - x
-    ey = y_d - y
-
-    evx = vx_d - vx
-    evy = vy_d - vy
-
-    U_x = KP_X * ex + KD_X * evx
-    U_y = KP_Y * ey + KD_Y * evy
-    Uxy = np.array([U_x,U_y])
-
-    arr_thphi = R_psi_inv@Uxy *m/f
-    phi_d = -np.arcsin(arr_thphi[1])
-    theta_d = np.arcsin(arr_thphi[0]/np.cos(phi_d))
-
-    theta_d = np.clip(theta_d, -MAX_ANGLE, MAX_ANGLE)
-    phi_d = np.clip(phi_d, -MAX_ANGLE, MAX_ANGLE)
-
-    return phi_d, theta_d
-
-def attitude_controller(state, phi_d, theta_d, psi_d=0.0):
-    phi = state[6]
-    theta = state[7]
-    psi = state[8]
-
-    p = state[9]
-    q = state[10]
-    r = state[11]
-    # Law for attitude control, with a PD controller
-    tau_phi = KP_PHI * (phi_d - phi) - KD_PHI * p 
-    tau_theta = KP_THETA * (theta_d - theta) - KD_THETA * q
-    tau_psi = KP_PSI * (psi_d - psi) - KD_PSI * r
-
-    return tau_phi, tau_theta, tau_psi
+        return f
 
 
-def closed_loop_dynamics(t, state, traj_fn=circular_trajectory):
-    x_d_t, y_d_t, vx_d_t, vy_d_t = traj_fn(t)
-    f = control_z(state)
-    phi_d, theta_d = xy_controller(
-        state,
-        f,
-        x_d_t,
-        y_d_t,
-        vx_d_t,
-        vy_d_t
-    )
-    tau_phi, tau_theta, tau_psi = attitude_controller(
-        state,
-        phi_d,
-        theta_d,
-        psi_d=0.0
-    )
 
-    control = np.array([f, tau_phi, tau_theta, tau_psi])
-    state_dot = drone_dynamics(t, state, control)
+    def xy_controller(self,state, f, x_d, y_d, vx_d=0.0, vy_d=0.0):
+        R_psi = np.array([np.cos(state[8]),-np.sin(state[8])],
+                        [np.sin(state[8]),np.cos(state[8])])
+        R_psi_inv = np.linalg.inv(R_psi)
+        x = state[0]
+        y = state[1]
 
-    # Apply wind disturbance as external force on velocity states
-    if DIST_START <= t <= DIST_END:
-        state_dot[3:6] += DIST_FORCE / m
+        vx = state[3]
+        vy = state[4]
 
-    return state_dot
+        ex = x_d - x
+        ey = y_d - y
+
+        evx = vx_d - vx
+        evy = vy_d - vy
+
+        U_x = self.KP_X * ex + self.KD_X * evx
+        U_y = self.KP_Y * ey + self.KD_Y * evy
+        Uxy = np.array([U_x,U_y])
+
+        arr_thphi = R_psi_inv@Uxy *self.m/self.f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
+        phi_d = -np.arcsin(arr_thphi[1])
+        theta_d = np.arcsin(arr_thphi[0]/np.cos(phi_d))
+
+        theta_d = np.clip(theta_d, -self.MAX_ANGLE, self.MAX_ANGLE)
+        phi_d = np.clip(phi_d, -self.MAX_ANGLE, self.MAX_ANGLE)
+
+        return phi_d, theta_d
+
+    def attitude_controller(self, state, phi_d, theta_d, psi_d=0.0, vpsi_d=0.0):
+        phi = state[6]
+        theta = state[7]
+        psi = state[8]
+        # Ômega: [p,q,r] (aprox [phi_dot, theta_dot, psi_dot] in low theta,phi)
+        p = state[9]
+        q = state[10]
+        r = state[11]
+        # Law for attitude control, with a PD controller
+        tau_phi = self.KP_PHI * (phi_d - phi) - self.KD_PHI * p 
+        tau_theta = self.KP_THETA * (theta_d - theta) - self.KD_THETA * q
+        tau_psi = self.KP_PSI * (psi_d - psi) - self.KD_PSI * (r-vpsi_d)
+
+        return tau_phi, tau_theta, tau_psi
+
+
+    def closed_loop_dynamics(self, t, state, traj_fn=circular_trajectory):
+        x_d_t, y_d_t, vx_d_t, vy_d_t = traj_fn(t)
+        f = self.control_z(state)
+        phi_d, theta_d = self.xy_controller(
+            state,
+            f,
+            self.x_d,
+            self.y_d,
+            vx_d_t,
+            vy_d_t
+        )
+        tau_phi, tau_theta, tau_psi = self.attitude_controller(
+            state,
+            phi_d,
+            theta_d,
+            psi_d=0.0,
+            vpsi_d=0.0
+        )
+
+        control = np.array([f, tau_phi, tau_theta, tau_psi])
+        state_dot = drone_dynamics(t, state, control)
+
+        # Apply wind disturbance as external force on velocity states
+        if self.DIST_START <= t <= self.DIST_END:
+            state_dot[3:6] += self.DIST_FORCE / self.m
+
+        return state_dot
 
