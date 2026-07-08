@@ -2,9 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
-from control import closed_loop_dynamics, xy_controller, control_z, z_d, DIST_FORCE, DIST_START, DIST_END
+from control import Controller 
 from Trajectory import circular_trajectory, line_trajectory
 
+controller = Controller()
+closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
+control_z, z_d= controller.control_z,controller.z_d,
+DIST_FORCE, DIST_START, DIST_END = controller.DIST_FORCE,controller.DIST_START, controller.DIST_END
 state0 = np.zeros(12)
 
 t_span = (0, 25)
@@ -135,18 +139,9 @@ axs[0, 0].legend()
 # ==========================
 # 2. Position X et Y
 # ==========================
-axs[0, 1].plot(
-    t,
-    x,
-    label="x real"
-)
+axs[0, 1].plot(t,x,label="x real")
 
-axs[0, 1].plot(
-    t,
-    x_d_values,
-    "--",
-    label="x desired"
-)
+axs[0, 1].plot(t,x_d_values,"--", label="x desired")
 
 axs[0, 1].plot(
     t,
@@ -154,12 +149,7 @@ axs[0, 1].plot(
     label="y real"
 )
 
-axs[0, 1].plot(
-    t,
-    y_d_values,
-    "--",
-    label="y desired"
-)
+axs[0, 1].plot(t,y_d_values,"--",label="y desired")
 
 axs[0, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red", label=f"wind {DIST_FORCE[0]:.0f}N")
 axs[0, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
@@ -191,36 +181,6 @@ if not np.isnan(tau_z):
     )
     axs[1, 0].plot(tau_z, 0.632 * z_d, "o", color="steelblue", markersize=6, zorder=5)
 
-# Annotation tr (secondaire, en gris discret)
-if not np.isnan(tr_z):
-    t10_val = t[idx10[0]]
-    t90_val = t[idx90[0]]
-    axs[1, 0].axvline(t10_val, color="gray", linestyle=":", linewidth=0.7, alpha=0.5)
-    axs[1, 0].axvline(t90_val, color="gray", linestyle=":", linewidth=0.7, alpha=0.5)
-    axs[1, 0].text(
-        t90_val + 0.1, 0.6, f"tr={tr_z:.2f}s",
-        fontsize=7, color="gray", alpha=0.7
-    )
-
-if depassement_z > 0:
-    axs[1, 0].annotate(
-        f"  +{depassement_z:.1f}%", xy=(t_peak_z, z_max),
-        fontsize=8, color="red",
-        xytext=(t_peak_z + 0.3, z_max), va="center"
-    )
-metrics_text_z = (
-    f"tau             : {tau_z:.2f} s\n"
-    f"Rise Time       : {tr_z:.2f} s\n"
-    f"Overshoot       : {depassement_z:.1f} %\n"
-    f"Steady-State    : {err_ss_z*100:.2f} cm"
-)
-axs[1, 0].text(
-    0.98, 0.05, metrics_text_z,
-    transform=axs[1, 0].transAxes,
-    fontsize=8, va="bottom", ha="right",
-    bbox=dict(boxstyle="round", facecolor="lightyellow", alpha=0.8)
-)
-
 axs[1, 0].set_title("Altitude")
 axs[1, 0].set_xlabel("Time [s]")
 axs[1, 0].set_ylabel("z [m]")
@@ -236,25 +196,11 @@ axs[1, 1].plot(
     label="φ real"
 )
 
-axs[1, 1].plot(
-    t,
-    np.rad2deg(phi_d_values),
-    "--",
-    label="φ desired"
-)
+axs[1, 1].plot(t,np.rad2deg(phi_d_values),"--",label="φ desired")
 
-axs[1, 1].plot(
-    t,
-    np.rad2deg(theta),
-    label="θ real"
-)
+axs[1, 1].plot(t,np.rad2deg(theta),label="θ real")
 
-axs[1, 1].plot(
-    t,
-    np.rad2deg(theta_d_values),
-    "--",
-    label="θ desired"
-)
+axs[1, 1].plot(t,np.rad2deg(theta_d_values),"--",label="θ desired")
 
 axs[1, 1].set_title("Attitude")
 axs[1, 1].set_xlabel("Time [s]")
@@ -286,27 +232,6 @@ axs[2, 1].axvline(DIST_END,   color="red", linestyle="--", linewidth=0.9)
 axs[2, 1].text(
     (DIST_START + DIST_END) / 2, 0.02,
     f"wind {DIST_FORCE[0]:.0f}N", ha="center", fontsize=8, color="red"
-)
-
-# Seuil de convergence et annotation
-axs[2, 1].axhline(SEUIL_XY, color="orange", linestyle="--", linewidth=0.8,
-                  label=f"seuil {SEUIL_XY} m")
-if not np.isnan(t_conv_xy):
-    axs[2, 1].axvline(t_conv_xy, color="orange", linestyle=":", linewidth=0.8)
-    axs[2, 1].text(t_conv_xy + 0.2, SEUIL_XY + 0.05,
-                   f"conv={t_conv_xy:.1f}s", fontsize=8, color="darkorange")
-
-metrics_text_xy = (
-    f"Maximum XY Error   : {e_xy_peak:.3f} m\n"
-    f"Convergence XY  : {t_conv_xy:.2f} s\n"
-    f"Steady-State Error X    : {err_ss_x*100:.2f} cm\n"
-    f"Steady-State Error Y    : {err_ss_y*100:.2f} cm"
-)
-axs[2, 1].text(
-    0.98, 0.95, metrics_text_xy,
-    transform=axs[2, 1].transAxes,
-    fontsize=8, va="top", ha="right",
-    bbox=dict(boxstyle="round", facecolor="lightyellow", alpha=0.8)
 )
 
 axs[2, 1].set_title("Error of follow")

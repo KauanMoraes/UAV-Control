@@ -11,7 +11,6 @@ class Controller:
         self.load_parameters()
 
     def load_parameters(self):
-        self.f = 0.0
         self.m = m
         self.g = g
         self.Jja = Jja
@@ -73,9 +72,9 @@ class Controller:
 
 
 
-    def xy_controller(self,state, f, x_d, y_d, vx_d=0.0, vy_d=0.0):
-        R_psi = np.array([np.cos(state[8]),-np.sin(state[8])],
-                        [np.sin(state[8]),np.cos(state[8])])
+    def xy_controller(self,state, x_d, y_d, vx_d=0.0, vy_d=0.0):
+        R_psi = np.array([[np.cos(state[8]),-np.sin(state[8])],
+                        [np.sin(state[8]),np.cos(state[8])]])
         R_psi_inv = np.linalg.inv(R_psi)
         x = state[0]
         y = state[1]
@@ -94,6 +93,8 @@ class Controller:
         Uxy = np.array([U_x,U_y])
 
         arr_thphi = R_psi_inv@Uxy *self.m/self.f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
+        if abs(arr_thphi.any())>1:
+            print(arr_thphi)
         phi_d = -np.arcsin(arr_thphi[1])
         theta_d = np.arcsin(arr_thphi[0]/np.cos(phi_d))
 
@@ -111,19 +112,22 @@ class Controller:
         q = state[10]
         r = state[11]
         # Law for attitude control, with a PD controller
-        tau_phi = self.KP_PHI * (phi_d - phi) - self.KD_PHI * p 
-        tau_theta = self.KP_THETA * (theta_d - theta) - self.KD_THETA * q
-        tau_psi = self.KP_PSI * (psi_d - psi) - self.KD_PSI * (r-vpsi_d)
+        U_phi = self.KP_PHI * (phi_d - phi) - self.KD_PHI * p 
+        U_theta = self.KP_THETA * (theta_d - theta) - self.KD_THETA * q
+        U_psi = self.KP_PSI * (psi_d - psi) - self.KD_PSI * (r-vpsi_d)
+
+        tau_phi = q*r*(Jja[2,2]-Jja[1,1]) + U_phi*Jjb[0,0]
+        tau_theta = p*r*(Jja[0,0]-Jja[2,2]) + U_theta*Jjb[1,1]
+        tau_psi = p*q*(Jja[1,1]-Jja[0,0]) + U_psi*Jjb[2,2]
 
         return tau_phi, tau_theta, tau_psi
 
 
     def closed_loop_dynamics(self, t, state, traj_fn=circular_trajectory):
         x_d_t, y_d_t, vx_d_t, vy_d_t = traj_fn(t)
-        f = self.control_z(state)
+        self.f = self.control_z(state)
         phi_d, theta_d = self.xy_controller(
             state,
-            f,
             self.x_d,
             self.y_d,
             vx_d_t,
@@ -137,7 +141,7 @@ class Controller:
             vpsi_d=0.0
         )
 
-        control = np.array([f, tau_phi, tau_theta, tau_psi])
+        control = np.array([self.f, tau_phi, tau_theta, tau_psi])
         state_dot = drone_dynamics(t, state, control)
 
         # Apply wind disturbance as external force on velocity states
