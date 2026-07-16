@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 from control import Controller 
-from Trajectory import circular_trajectory, line_trajectory
+from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
-controller = Controller()
+trajectory = line_trajectory
+controller = Controller(trajectory=trajectory)
 closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
 control_z, z_d= controller.control_z,controller.z_d,
 DIST_FORCE, DIST_START, DIST_END = controller.DIST_FORCE,controller.DIST_START, controller.DIST_END
@@ -33,13 +34,14 @@ f_values = []
 
 x_d_values = []
 y_d_values = []
+z_d_values = []
 
 for k in range(len(t)):
 
     state_k = sol.y[:, k]
 
     # Desired trajectory at instant t[k]
-    x_d_k, y_d_k, vx_d_k, vy_d_k = circular_trajectory(t[k])
+    x_d_k, y_d_k, z_d_k, vx_d_k, vy_d_k, vz_d_k = trajectory(t[k])
 
     phi_d_k, theta_d_k = xy_controller(
         state_k,
@@ -49,10 +51,11 @@ for k in range(len(t)):
         vy_d_k
     )
 
-    f_k = control_z(state_k)
+    f_k = control_z(state_k,z_d_k,vz_d_k)
 
     x_d_values.append(x_d_k)
     y_d_values.append(y_d_k)
+    z_d_values.append(z_d_k)
 
     phi_d_values.append(phi_d_k)
     theta_d_values.append(theta_d_k)
@@ -60,6 +63,7 @@ for k in range(len(t)):
 
 x_d_values = np.array(x_d_values)
 y_d_values = np.array(y_d_values)
+z_d_values = np.array(z_d_values)
 
 phi_d_values = np.array(phi_d_values)
 theta_d_values = np.array(theta_d_values)
@@ -67,13 +71,13 @@ f_values = np.array(f_values)
 
 
 # ============================================================
-# Métriques de performance
+# Performance Metrics
 # ============================================================
-n_ss = int(len(t) * 0.2)  # derniers 20 % pour l'état stationnaire
+n_ss = int(len(t) * 0.2)  # last 20 % for the stationary state
 
-# --- Z : réponse indicielle (0 → z_d) ---
+# --- Z : transitory response (0 → z_d) ---
 z_max = np.max(z)
-depassement_z = max(0.0, (z_max - z_d) / z_d * 100) if z_d != 0 else 0.0
+z_overshoot = max(0.0, (z_max - z_d) / z_d * 100) if z_d != 0 else 0.0
 
 idx10 = np.where(z >= 0.1 * z_d)[0]
 idx90 = np.where(z >= 0.9 * z_d)[0]
@@ -102,7 +106,7 @@ print("\n========== Performance Metrics ==========")
 print(f"\n  [Z]  Altitude   (Target : {z_d:.1f} m)")
 print(f"       Time Constant (tau)    : {tau_z:.2f} s  (63.2% of z_d)")
 print(f"       Rise Time (10%->90%)   : {tr_z:.2f} s  (~2.2*tau)")
-print(f"       Overshoot              : {depassement_z:.1f} %")
+print(f"       Overshoot              : {z_overshoot:.1f} %")
 print(f"       Steady-State Error     : {err_ss_z*100:.2f} cm")
 print(f"\n  [X]  Steady-State Error (mean) : {err_ss_x*100:.2f} cm")
 print(f"  [Y]  Steady-State Error (mean) : {err_ss_y*100:.2f} cm")
@@ -164,22 +168,7 @@ axs[0, 1].legend()
 # 3. Altitude
 # ==========================
 axs[1, 0].plot(t, z, label="z real")
-axs[1, 0].plot(t, z_d*np.ones_like(t), "--", label=f"z desired ({z_d} m)")
-
-# Annotation tau (principal)
-if not np.isnan(tau_z):
-    axs[1, 0].axhline(0.632 * z_d, color="steelblue", linestyle="--", linewidth=0.8, alpha=0.7)
-    axs[1, 0].text(0.4, 0.632 * z_d + 0.02, "63.2%", fontsize=7, color="steelblue")
-    axs[1, 0].axvline(tau_z, color="steelblue", linestyle="--", linewidth=1.2)
-    axs[1, 0].annotate(
-        "", xy=(tau_z, 0.08), xytext=(0, 0.08),
-        arrowprops=dict(arrowstyle="<->", color="steelblue", lw=1.2)
-    )
-    axs[1, 0].text(
-        tau_z / 2, 0.11, f"tau = {tau_z:.2f} s",
-        ha="center", fontsize=9, color="steelblue", fontweight="bold"
-    )
-    axs[1, 0].plot(tau_z, 0.632 * z_d, "o", color="steelblue", markersize=6, zorder=5)
+axs[1, 0].plot(t, z_d_values, "--", label=f"z desired ({z_d} m)")
 
 axs[1, 0].set_title("Altitude")
 axs[1, 0].set_xlabel("Time [s]")

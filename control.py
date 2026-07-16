@@ -7,18 +7,15 @@ from config import m, g, Jja,Jjb
 from dynamics import drone_dynamics
 
 class Controller:
-    def __init__(self):
-        self.load_parameters()
+    def __init__(self,trajectory = line_trajectory):
+        self.load_parameters(trajectory)
 
-    def load_parameters(self):
+    def load_parameters(self,trajectory):
+        self.traj_fn = trajectory
         self.m = m
         self.g = g
         self.Jja = Jja
         self.Jjb = Jjb
-        # Order
-        self.x_d = 2.0
-        self.y_d = 1.0
-        self.z_d = 1.0
 
         # Gains altitude
         self.KP_Z = 8.5
@@ -46,22 +43,23 @@ class Controller:
         # Disturbance — wind step force in inertial frame [N]
         self.DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
         self.DIST_START = 5.0                          # onset time [s]
-        self.DIST_END   = 15.0                         # end time [s]
+        self.DIST_END   = 5.0                         # end time [s]
 
         # References
-        self.x_d = 2.0
-        self.y_d = 1.0
-        self.z_d = 1.0
+        self.x_d = 0.0
+        self.y_d = 0.0
+        self.z_d = 0.0
     
     
-    def  control_z(self,state):
+    def control_z(self,state,z_d,vz_d):
         z = state[2]
         z_dot = state[5]
         phi = state[6]
         theta = state[7]
+        self.z_d = self.traj_fn
 
-        e_z = self.z_d - z
-        e_dot_z = - z_dot
+        e_z = z_d - z
+        e_dot_z = vz_d - z_dot
         kh = np.cos(phi) * np.cos(theta)
 
         u_z = self.KP_Z*e_z + self.KD_Z*e_dot_z #Control law for altitude
@@ -92,11 +90,14 @@ class Controller:
         U_y = self.KP_Y * ey + self.KD_Y * evy
         Uxy = np.array([U_x,U_y])
 
-        arr_thphi = R_psi_inv@Uxy *self.m/self.f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
-        if abs(arr_thphi.any())>1:
-            print(arr_thphi)
-        phi_d = -np.arcsin(arr_thphi[1])
-        theta_d = np.arcsin(arr_thphi[0]/np.cos(phi_d))
+        arr_thphi = R_psi_inv@ Uxy *self.m/self.f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
+        if np.abs(arr_thphi[1])>1:
+            print(f'-sen(phi_d):{arr_thphi[1]}')
+        phi_d = -np.arcsin(np.clip(arr_thphi[1],-1,1))
+        
+        if np.abs(arr_thphi[0]/np.cos(phi_d))>1:
+            print(f'sin(theta_d)cos(phi_d):{arr_thphi[0]/np.cos(phi_d)}')
+        theta_d = np.arcsin(np.clip(arr_thphi[0]/np.cos(phi_d),-1,1))
 
         theta_d = np.clip(theta_d, -self.MAX_ANGLE, self.MAX_ANGLE)
         phi_d = np.clip(phi_d, -self.MAX_ANGLE, self.MAX_ANGLE)
@@ -122,16 +123,23 @@ class Controller:
 
         return tau_phi, tau_theta, tau_psi
 
+    def outer_controller(self,state,x_d,y_d,z_d):
+        KPO = 2 # outer controller constant
+        vx_d = KPO * (x_d-state[0])
+        vy_d = KPO * (x_d-state[1])
+        vz_d = KPO * (x_d-state[2])
+        return vx_d,vy_d,vz_d
 
-    def closed_loop_dynamics(self, t, state, traj_fn=circular_trajectory):
-        x_d_t, y_d_t, vx_d_t, vy_d_t = traj_fn(t)
-        self.f = self.control_z(state)
+
+    def closed_loop_dynamics(self, t, state):
+        self.x_d_t, self.y_d_t, self.z_d_t, self.vx_d_t, self.vy_d_t, self.vz_d_t = self.traj_fn(t)
+        self.f = self.control_z(state,self.z_d_t,self.vz_d_t)
         phi_d, theta_d = self.xy_controller(
             state,
-            self.x_d,
-            self.y_d,
-            vx_d_t,
-            vy_d_t
+            self.x_d_t,
+            self.y_d_t,
+            self.vx_d_t,
+            self.vy_d_t
         )
         tau_phi, tau_theta, tau_psi = self.attitude_controller(
             state,
