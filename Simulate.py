@@ -5,7 +5,7 @@ from scipy.integrate import solve_ivp
 from control import Controller 
 from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
-trajectory = line_trajectory
+trajectory = z_rampa
 controller = Controller(trajectory=trajectory)
 closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
 control_z, z_d= controller.control_z,controller.z_d,
@@ -41,8 +41,8 @@ for k in range(len(t)):
     state_k = sol.y[:, k]
 
     # Desired trajectory at instant t[k]
-    x_d_k, y_d_k, z_d_k, vx_d_k, vy_d_k, vz_d_k = trajectory(t[k])
-
+    x_d_k, y_d_k, z_d_k = trajectory(t[k])
+    vx_d_k,vy_d_k,vz_d_k = controller.outer_controller(state_k,x_d_k, y_d_k, z_d_k)
     phi_d_k, theta_d_k = xy_controller(
         state_k,
         x_d_k,
@@ -179,11 +179,7 @@ axs[1, 0].legend()
 # ==========================
 # 4. Attitude
 # ==========================
-axs[1, 1].plot(
-    t,
-    np.rad2deg(phi),
-    label="φ real"
-)
+axs[1, 1].plot(t,np.rad2deg(phi),label="φ real")
 
 axs[1, 1].plot(t,np.rad2deg(phi_d_values),"--",label="φ desired")
 

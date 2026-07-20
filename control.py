@@ -18,24 +18,24 @@ class Controller:
         self.Jjb = Jjb
 
         # Gains altitude
-        self.KP_Z = 8.5
-        self.KD_Z = 5
+        self.KP_Z = 1
+        self.KD_Z = 2
 
         # Gains attitude inner loop
-        self.KP_PHI = 10
-        self.KD_PHI = 2.0
+        self.KP_PHI = 25.0
+        self.KD_PHI = 7.0
 
-        self.KP_THETA = 10
-        self.KD_THETA = 2.0
+        self.KP_THETA = 25.0
+        self.KD_THETA = 7.0
 
         self.KP_PSI = 4.0
         self.KD_PSI = 1.5
 
-        self.KP_X = 3.0
-        self.KD_X = 3.1
+        self.KP_X = 0.5
+        self.KD_X = 1.5
 
-        self.KP_Y = 3.0
-        self.KD_Y = 3.1
+        self.KP_Y = 0.5
+        self.KD_Y = 1.5
 
         # Hypothesis of small angles XY
         self.MAX_ANGLE = np.deg2rad(15)
@@ -89,8 +89,8 @@ class Controller:
         U_x = self.KP_X * ex + self.KD_X * evx
         U_y = self.KP_Y * ey + self.KD_Y * evy
         Uxy = np.array([U_x,U_y])
-
-        arr_thphi = R_psi_inv@ Uxy *self.m/self.f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
+        safe_f = np.maximum(self.f, 0.5 * self.m * self.g)
+        arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
         if np.abs(arr_thphi[1])>1:
             print(f'-sen(phi_d):{arr_thphi[1]}')
         phi_d = -np.arcsin(np.clip(arr_thphi[1],-1,1))
@@ -124,15 +124,20 @@ class Controller:
         return tau_phi, tau_theta, tau_psi
 
     def outer_controller(self,state,x_d,y_d,z_d):
-        KPO = 2 # outer controller constant
+        KPO = 1 # outer controller constant
         vx_d = KPO * (x_d-state[0])
-        vy_d = KPO * (x_d-state[1])
-        vz_d = KPO * (x_d-state[2])
+        vy_d = KPO * (y_d-state[1])
+        vz_d = KPO * (z_d-state[2])
         return vx_d,vy_d,vz_d
 
 
     def closed_loop_dynamics(self, t, state):
-        self.x_d_t, self.y_d_t, self.z_d_t, self.vx_d_t, self.vy_d_t, self.vz_d_t = self.traj_fn(t)
+        self.x_d_t, self.y_d_t, self.z_d_t = self.traj_fn(t)
+        #if np.round(200*t)%50 == 0:
+        self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,
+                                                self.x_d_t, self.y_d_t, self.z_d_t)
+        #print(f't: {t}, vy_d: {self.vy_d_t}')                                        
+        if t%5 == 0: print(f't5: {t}, vz_d: {self.vz_d_t}')
         self.f = self.control_z(state,self.z_d_t,self.vz_d_t)
         phi_d, theta_d = self.xy_controller(
             state,

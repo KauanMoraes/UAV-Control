@@ -6,10 +6,7 @@ def circular_trajectory(t, R=2.0, omega=0.3):
     y_d = R * np.sin(omega * t)
     z_d = 1.0
 
-    vx_d = -R * omega * np.sin(omega * t)
-    vy_d = R * omega * np.cos(omega * t)
-    vz_d = 0.0
-    return x_d, y_d, z_d, vx_d, vy_d, vz_d
+    return x_d, y_d, z_d
 
 
 def line_trajectory(t):
@@ -17,17 +14,10 @@ def line_trajectory(t):
     y_d = 1.0
     z_d = 1.0
 
-    vx_d = 0.2
-    vy_d = 0.0
-    vz_d = 0.0
-    return x_d, y_d, z_d, vx_d, vy_d, vz_d
+    return x_d, y_d, z_d
 
 def z_rampa(t):
     x_d = 0.0
-    y_d = 0.0
-    vx_d = 0.0
-    vy_d = 0.0
-
+    y_d = 0.1*t
     z_d = 0.1*t
-    vz_d = 0.1
-    return x_d, y_d, z_d, vx_d, vy_d, vz_d
+    return x_d, y_d, z_d
