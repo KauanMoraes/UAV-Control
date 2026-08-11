@@ -22,20 +22,20 @@ class Controller:
         self.KD_Z = 5
 
         # Gains attitude inner loop
-        self.KP_PHI = 10
-        self.KD_PHI = 2.0
-
-        self.KP_THETA = 10
-        self.KD_THETA = 2.0
-
         self.KP_PSI = 4.0
         self.KD_PSI = 1.5
 
-        self.KP_X = 3.0
-        self.KD_X = 3.1
+        self.KP_PHI = 10
+        self.KD_PHI = 5.0
 
-        self.KP_Y = 3.0
-        self.KD_Y = 3.1
+        self.KP_THETA = 10
+        self.KD_THETA = 5.0
+
+        self.KP_X = 2.0
+        self.KD_X = 2.1
+
+        self.KP_Y = 2.0
+        self.KD_Y = 2.1
 
         # Hypothesis of small angles XY
         self.MAX_ANGLE = np.deg2rad(15)
