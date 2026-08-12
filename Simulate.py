@@ -5,7 +5,7 @@ from scipy.integrate import solve_ivp
 from control import Controller 
 from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
-trajectory = line_trajectory
+trajectory = circular_trajectory
 controller = Controller(trajectory=trajectory)
 closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
 control_z, z_d= controller.control_z,controller.z_d,

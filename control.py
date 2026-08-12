@@ -31,10 +31,10 @@ class Controller:
         self.KP_THETA = 10
         self.KD_THETA = 5.0
 
-        self.KP_X = 2.0
+        self.KP_X = 1.4  # 2.0
         self.KD_X = 2.1
 
-        self.KP_Y = 2.0
+        self.KP_Y = 1.4  # 2.0
         self.KD_Y = 2.1
 
         # Hypothesis of small angles XY
