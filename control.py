@@ -70,7 +70,7 @@ class Controller:
 
 
 
-    def xy_controller(self,state, x_d, y_d, vx_d=0.0, vy_d=0.0):
+    def xy_controller(self,state, x_d, y_d, vx_d, vy_d, ax_d=0.0, ay_d=0.0):
         R_psi = np.array([[np.cos(state[8]),-np.sin(state[8])],
                         [np.sin(state[8]),np.cos(state[8])]])
         R_psi_inv = np.linalg.inv(R_psi)
@@ -86,8 +86,8 @@ class Controller:
         evx = vx_d - vx
         evy = vy_d - vy
 
-        U_x = self.KP_X * ex + self.KD_X * evx
-        U_y = self.KP_Y * ey + self.KD_Y * evy
+        U_x = self.KP_X * ex + self.KD_X * evx + ax_d
+        U_y = self.KP_Y * ey + self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
 
         arr_thphi = R_psi_inv@ Uxy *self.m/self.f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
@@ -126,8 +126,8 @@ class Controller:
     def outer_controller(self,state,x_d,y_d,z_d):
         KPO = 2 # outer controller constant
         vx_d = KPO * (x_d-state[0])
-        vy_d = KPO * (x_d-state[1])
-        vz_d = KPO * (x_d-state[2])
+        vy_d = KPO * (y_d-state[1])
+        vz_d = KPO * (z_d-state[2])
         return vx_d,vy_d,vz_d
 
 
