@@ -26,7 +26,7 @@ def line_trajectory(t):
     ax_d = 0.0
     ay_d = 0.0
     az_d = 0.0
-    return x_d, y_d, z_d, vx_d, vy_d, vz_d, ax_d, ay_d, az_d
+    return x_d, y_d, z_d, vx_d, vy_d, vz_d#, ax_d, ay_d, az_d
 
 def z_rampa(t):
     x_d = 1.0

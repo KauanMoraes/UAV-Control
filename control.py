@@ -42,8 +42,8 @@ class Controller:
 
         # Disturbance — wind step force in inertial frame [N]
         self.DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
-        self.DIST_START = 5.0                          # onset time [s]
-        self.DIST_END   = 5.0                         # end time [s]
+        self.DIST_START = 10.0                          # onset time [s]
+        self.DIST_END   = 30.0                         # end time [s]
 
         # References
         self.x_d = 0.0
@@ -124,7 +124,7 @@ class Controller:
         return tau_phi, tau_theta, tau_psi
 
     def outer_controller(self,state,x_d,y_d,z_d):
-        KPO = 2 # outer controller constant
+        KPO = 1 # outer controller constant
         vx_d = KPO * (x_d-state[0])
         vy_d = KPO * (y_d-state[1])
         vz_d = KPO * (z_d-state[2])
@@ -133,6 +133,8 @@ class Controller:
 
     def closed_loop_dynamics(self, t, state):
         self.x_d_t, self.y_d_t, self.z_d_t, self.vx_d_t, self.vy_d_t, self.vz_d_t = self.traj_fn(t)
+        # self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,self.x_d_t,
+        #                                                               self.y_d_t,self.z_d_t)
         self.f = self.control_z(state,self.z_d_t,self.vz_d_t)
         phi_d, theta_d = self.xy_controller(
             state,
