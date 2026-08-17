@@ -22,28 +22,28 @@ class Controller:
         self.KD_Z = 2
 
         # Gains attitude inner loop
-        self.KP_PHI = 25.0
-        self.KD_PHI = 7.0
-
-        self.KP_THETA = 25.0
-        self.KD_THETA = 7.0
-
         self.KP_PSI = 4.0
         self.KD_PSI = 1.5
 
-        self.KP_X = 0.5
-        self.KD_X = 1.5
+        self.KP_PHI = 10
+        self.KD_PHI = 5.0
 
-        self.KP_Y = 0.5
-        self.KD_Y = 1.5
+        self.KP_THETA = 10
+        self.KD_THETA = 5.0
+
+        self.KP_X = 1.4  # 2.0
+        self.KD_X = 2.1
+
+        self.KP_Y = 1.4  # 2.0
+        self.KD_Y = 2.1
 
         # Hypothesis of small angles XY
         self.MAX_ANGLE = np.deg2rad(15)
 
         # Disturbance — wind step force in inertial frame [N]
         self.DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
-        self.DIST_START = 5.0                          # onset time [s]
-        self.DIST_END   = 5.0                         # end time [s]
+        self.DIST_START = 10.0                          # onset time [s]
+        self.DIST_END   = 30.0                         # end time [s]
 
         # References
         self.x_d = 0.0
@@ -73,7 +73,7 @@ class Controller:
 
 
 
-    def xy_controller(self,state, x_d, y_d, vx_d=0.0, vy_d=0.0, ax_d = None, ay_d = None):
+    def xy_controller(self,state, x_d, y_d, vx_d, vy_d, ax_d=0.0, ay_d=0.0):
         R_psi = np.array([[np.cos(state[8]),-np.sin(state[8])],
                         [np.sin(state[8]),np.cos(state[8])]])
         R_psi_inv = np.linalg.inv(R_psi)
@@ -89,12 +89,8 @@ class Controller:
         evx = vx - vx_d
         evy = vy - vy_d
 
-        if ax_d is not None and ay_d is not None:
-            U_x = -self.KP_X * ex - self.KD_X * evx + ax_d
-            U_y = -self.KP_Y * ey - self.KD_Y * evy + ay_d
-        else:
-            U_x = -self.KP_X * ex - self.KD_X * evx
-            U_y = -self.KP_Y * ey - self.KD_Y * evy
+        U_x = self.KP_X * ex + self.KD_X * evx + ax_d
+        U_y = self.KP_Y * ey + self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
         safe_f = np.maximum(self.f, 0.5 * self.m * self.g)
         arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]

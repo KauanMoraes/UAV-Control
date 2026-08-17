@@ -11,9 +11,9 @@ closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.
 control_z, z_d= controller.control_z,controller.z_d,
 DIST_FORCE, DIST_START, DIST_END = controller.DIST_FORCE,controller.DIST_START, controller.DIST_END
 state0 = np.zeros(12)
-
-t_span = (0, 25)
-t_eval = np.linspace(0, 25, 5000)
+t_end = 40
+t_span = (0, t_end)
+t_eval = np.linspace(0, t_end, 5000)
 
 sol = solve_ivp(closed_loop_dynamics, t_span, state0, t_eval=t_eval)
 
