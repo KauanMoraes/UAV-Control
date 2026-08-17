@@ -51,18 +51,21 @@ class Controller:
         self.z_d = 0.0
     
     
-    def control_z(self,state,z_d,vz_d):
+    def control_z(self,state,z_d,vz_d, az_d = None):
         z = state[2]
         z_dot = state[5]
         phi = state[6]
         theta = state[7]
         self.z_d = self.traj_fn
 
-        e_z = z_d - z
-        e_dot_z = vz_d - z_dot
+        e_z = z - z_d
+        e_dot_z =  z_dot - vz_d
         kh = np.cos(phi) * np.cos(theta)
 
-        u_z = self.KP_Z*e_z + self.KD_Z*e_dot_z #Control law for altitude
+        if az_d is not None:
+            u_z = - self.KP_Z*e_z - self.KD_Z*e_dot_z + az_d #Control law for altitude
+        else:
+            u_z = - self.KP_Z*e_z - self.KD_Z*e_dot_z #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
 
@@ -70,7 +73,7 @@ class Controller:
 
 
 
-    def xy_controller(self,state, x_d, y_d, vx_d=0.0, vy_d=0.0):
+    def xy_controller(self,state, x_d, y_d, vx_d=0.0, vy_d=0.0, ax_d = None, ay_d = None):
         R_psi = np.array([[np.cos(state[8]),-np.sin(state[8])],
                         [np.sin(state[8]),np.cos(state[8])]])
         R_psi_inv = np.linalg.inv(R_psi)
@@ -80,14 +83,18 @@ class Controller:
         vx = state[3]
         vy = state[4]
 
-        ex = x_d - x
-        ey = y_d - y
+        ex = x - x_d
+        ey = y - y_d
 
-        evx = vx_d - vx
-        evy = vy_d - vy
+        evx = vx - vx_d
+        evy = vy - vy_d
 
-        U_x = self.KP_X * ex + self.KD_X * evx
-        U_y = self.KP_Y * ey + self.KD_Y * evy
+        if ax_d is not None and ay_d is not None:
+            U_x = -self.KP_X * ex - self.KD_X * evx + ax_d
+            U_y = -self.KP_Y * ey - self.KD_Y * evy + ay_d
+        else:
+            U_x = -self.KP_X * ex - self.KD_X * evx
+            U_y = -self.KP_Y * ey - self.KD_Y * evy
         Uxy = np.array([U_x,U_y])
         safe_f = np.maximum(self.f, 0.5 * self.m * self.g)
         arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
@@ -130,14 +137,18 @@ class Controller:
         vz_d = KPO * (z_d-state[2])
         return vx_d,vy_d,vz_d
 
+    def derivative(self, u, u_new, t, t_new):
+        return (u_new - u) / (t_new - t)
 
     def closed_loop_dynamics(self, t, state):
         self.x_d_t, self.y_d_t, self.z_d_t = self.traj_fn(t)
         #if np.round(200*t)%50 == 0:
         self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,
                                                 self.x_d_t, self.y_d_t, self.z_d_t)
-        #print(f't: {t}, vy_d: {self.vy_d_t}')                                        
-        if t%5 == 0: print(f't5: {t}, vz_d: {self.vz_d_t}')
+        if t>0:
+            self.ax_d_t = self.derivative(self.vx_d_t, self.vx_d_t, t, t)
+            self.ay_d_t = self.derivative(self.vy_d_t, self.vy_d_t, t, t)
+            self.az_d_t = self.derivative(self.vz_d_t, self.vz_d_t, t, t)
         self.f = self.control_z(state,self.z_d_t,self.vz_d_t)
         phi_d, theta_d = self.xy_controller(
             state,
