@@ -42,7 +42,7 @@ class Controller:
         self.MAX_ANGLE = np.deg2rad(15)
 
         # Disturbance — wind step force in inertial frame [N]
-        self.DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
+        self.DIST_FORCE = np.array([0.0, 0.0, 2.0])  # 3N in X
         self.DIST_START = 10.0                          # onset time [s]
         self.DIST_END   = 10.0                         # end time [s]
 
@@ -62,18 +62,18 @@ class Controller:
         self.dot_y_d = 0
         self.dot_z_d = 0
 
-    def control_z(self,state,z_d,vz_d, az_d = 0.0):
+    def control_z(self,state,vz_d, az_d = 0.0):
         z = state[2]
         z_dot = state[5]
         phi = state[6]
         theta = state[7]
         self.z_d = self.traj_fn
 
-        e_z = z - z_d
+        #e_z = z - z_d
         e_dot_z =  z_dot - vz_d
         kh = np.cos(phi) * np.cos(theta)
 
-        u_z = - self.KP_Z*e_z - self.KD_Z*e_dot_z + az_d #Control law for altitude
+        u_z = self.KP_Z*self.intgr_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
 
@@ -81,7 +81,7 @@ class Controller:
 
 
 
-    def xy_controller(self,state, vx_d, vy_d, ax_d=0.0, ay_d=0.0):
+    def xy_controller(self,state, f, vx_d, vy_d, ax_d=0.0, ay_d=0.0):
         R_psi = np.array([[np.cos(state[8]),-np.sin(state[8])],
                         [np.sin(state[8]),np.cos(state[8])]])
         R_psi_inv = np.linalg.inv(R_psi)
@@ -100,7 +100,7 @@ class Controller:
         U_x = self.KP_X * self.intgr_vx - self.KD_X * evx + ax_d
         U_y = self.KP_Y * self.intgr_vy - self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
-        safe_f = np.maximum(self.f, 0.5 * self.m * self.g)
+        safe_f = np.maximum(f, 0.5 * self.m * self.g)
         arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
         if np.abs(arr_thphi[1])>1:
             print(f'-sen(phi_d):{arr_thphi[1]}')
@@ -153,22 +153,23 @@ class Controller:
         # salvar um estado anterior (old_vx_d_t) diretamente aqui dentro não funciona 
         # A derivada exata de vx_d = KPO * (x_d - x) é ax_d = KPO * (dot_x_d - v_x).
         dt_sim = self.delta_t/3
-        x_d_next, y_d_next, z_d_next = self.traj_fn(t + dt_sim)
-        self.dot_x_d = (x_d_next - self.x_d_t) / dt_sim
-        self.dot_y_d = (y_d_next - self.y_d_t) / dt_sim
-        self.dot_z_d = (z_d_next - self.z_d_t) / dt_sim
+        x_d_old, y_d_old, z_d_old = self.traj_fn(t - dt_sim) if t>0 else self.traj_fn(t)
+        self.dot_x_d = (self.x_d_t - x_d_old) / dt_sim
+        self.dot_y_d = (self.y_d_t - y_d_old) / dt_sim
+        self.dot_z_d = (self.z_d_t - z_d_old) / dt_sim
         KPO  = self.KPO
         self.ax_d = KPO * (self.dot_x_d - state[3])
         self.ay_d = KPO * (self.dot_y_d - state[4])
         self.az_d = KPO * (self.dot_z_d - state[5])
         
-        self.f = self.control_z(state,self.z_d_t,self.vz_d_t)
+        self.f = self.control_z(state,self.vz_d_t,self.az_d)
 
         self.intgr_vx += self.delta_t * (self.vx_d_t - state[3])
         self.intgr_vy += self.delta_t * (self.vy_d_t - state[4])
         self.intgr_vz += self.delta_t * (self.vz_d_t - state[5])
         phi_d, theta_d = self.xy_controller(
             state,
+            self.f,
             self.vx_d_t,
             self.vy_d_t,
             self.ax_d,

@@ -6,8 +6,8 @@ from control import Controller
 from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
 trajectory = line_trajectory
-num = 10000
-t_end = 40
+num = 5000
+t_end = 15
 t_span = (0, t_end)
 t_eval = np.linspace(0, t_end, num)
 controller = Controller(delta_t = t_end/num, trajectory=trajectory)
@@ -35,6 +35,7 @@ f_values = []
 x_d_values = []
 y_d_values = []
 z_d_values = []
+controller.load_parameters(trajectory)
 
 for k in range(len(t)):
 
@@ -43,13 +44,13 @@ for k in range(len(t)):
     # Desired trajectory at instant t[k]
     x_d_k, y_d_k, z_d_k = trajectory(t[k])
     vx_d_k,vy_d_k,vz_d_k = controller.outer_controller(state_k,x_d_k, y_d_k, z_d_k)
+    f_k = control_z(state_k,vz_d_k)
     phi_d_k, theta_d_k = xy_controller(
-        state_k,
+        state_k, f_k,
         vx_d_k,
         vy_d_k
     )
 
-    f_k = control_z(state_k,z_d_k,vz_d_k)
 
     x_d_values.append(x_d_k)
     y_d_values.append(y_d_k)
