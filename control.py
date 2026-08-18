@@ -7,7 +7,8 @@ from config import m, g, Jja,Jjb
 from dynamics import drone_dynamics
 
 class Controller:
-    def __init__(self,trajectory = line_trajectory):
+    def __init__(self, delta_t, trajectory = line_trajectory):
+        self.delta_t = delta_t
         self.load_parameters(trajectory)
 
     def load_parameters(self,trajectory):
@@ -43,15 +44,25 @@ class Controller:
         # Disturbance — wind step force in inertial frame [N]
         self.DIST_FORCE = np.array([3.0, 0.0, 0.0])  # 3N in X
         self.DIST_START = 10.0                          # onset time [s]
-        self.DIST_END   = 30.0                         # end time [s]
+        self.DIST_END   = 10.0                         # end time [s]
 
         # References
         self.x_d = 0.0
         self.y_d = 0.0
         self.z_d = 0.0
-    
-    
-    def control_z(self,state,z_d,vz_d, az_d = None):
+
+        self.intgr_vx = 0.0
+        self.intgr_vy = 0.0
+        self.intgr_vz = 0.0
+
+        self.ax_d = 0
+        self.ay_d = 0
+        self.az_d = 0
+        self.dot_x_d = 0
+        self.dot_y_d = 0
+        self.dot_z_d = 0
+
+    def control_z(self,state,z_d,vz_d, az_d = 0.0):
         z = state[2]
         z_dot = state[5]
         phi = state[6]
@@ -62,10 +73,7 @@ class Controller:
         e_dot_z =  z_dot - vz_d
         kh = np.cos(phi) * np.cos(theta)
 
-        if az_d is not None:
-            u_z = - self.KP_Z*e_z - self.KD_Z*e_dot_z + az_d #Control law for altitude
-        else:
-            u_z = - self.KP_Z*e_z - self.KD_Z*e_dot_z #Control law for altitude
+        u_z = - self.KP_Z*e_z - self.KD_Z*e_dot_z + az_d #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
 
@@ -73,24 +81,24 @@ class Controller:
 
 
 
-    def xy_controller(self,state, x_d, y_d, vx_d, vy_d, ax_d=0.0, ay_d=0.0):
+    def xy_controller(self,state, vx_d, vy_d, ax_d=0.0, ay_d=0.0):
         R_psi = np.array([[np.cos(state[8]),-np.sin(state[8])],
                         [np.sin(state[8]),np.cos(state[8])]])
         R_psi_inv = np.linalg.inv(R_psi)
-        x = state[0]
-        y = state[1]
+        # x = state[0]
+        # y = state[1]
 
         vx = state[3]
         vy = state[4]
 
-        ex = x - x_d
-        ey = y - y_d
+        # ex = x - x_d
+        # ey = y - y_d
 
         evx = vx - vx_d
         evy = vy - vy_d
 
-        U_x = self.KP_X * ex + self.KD_X * evx + ax_d
-        U_y = self.KP_Y * ey + self.KD_Y * evy + ay_d
+        U_x = self.KP_X * self.intgr_vx - self.KD_X * evx + ax_d
+        U_y = self.KP_Y * self.intgr_vy - self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
         safe_f = np.maximum(self.f, 0.5 * self.m * self.g)
         arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
@@ -127,31 +135,44 @@ class Controller:
         return tau_phi, tau_theta, tau_psi
 
     def outer_controller(self,state,x_d,y_d,z_d):
-        KPO = 1 # outer controller constant
-        vx_d = KPO * (x_d-state[0])
-        vy_d = KPO * (y_d-state[1])
-        vz_d = KPO * (z_d-state[2])
+        self.KPO = 3/4 # outer controller constant
+        KPO  = self.KPO
+        vx_d = KPO * (x_d-state[0])+self.dot_x_d
+        vy_d = KPO * (y_d-state[1])+self.dot_y_d
+        vz_d = KPO * (z_d-state[2])+self.dot_z_d
         return vx_d,vy_d,vz_d
 
-    def derivative(self, u, u_new, t, t_new):
-        return (u_new - u) / (t_new - t)
+    def derivative(self, u, u_new, delta_t):
+        return (u_new - u) / delta_t
 
     def closed_loop_dynamics(self, t, state):
         self.x_d_t, self.y_d_t, self.z_d_t = self.traj_fn(t)
-        #if np.round(200*t)%50 == 0:
         self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,
                                                 self.x_d_t, self.y_d_t, self.z_d_t)
-        if t>0:
-            self.ax_d_t = self.derivative(self.vx_d_t, self.vx_d_t, t, t)
-            self.ay_d_t = self.derivative(self.vy_d_t, self.vy_d_t, t, t)
-            self.az_d_t = self.derivative(self.vz_d_t, self.vz_d_t, t, t)
+        # Como o solver Runge-Kutta do solve_ivp avalia vários sub-passos no tempo,
+        # salvar um estado anterior (old_vx_d_t) diretamente aqui dentro não funciona 
+        # A derivada exata de vx_d = KPO * (x_d - x) é ax_d = KPO * (dot_x_d - v_x).
+        dt_sim = self.delta_t/3
+        x_d_next, y_d_next, z_d_next = self.traj_fn(t + dt_sim)
+        self.dot_x_d = (x_d_next - self.x_d_t) / dt_sim
+        self.dot_y_d = (y_d_next - self.y_d_t) / dt_sim
+        self.dot_z_d = (z_d_next - self.z_d_t) / dt_sim
+        KPO  = self.KPO
+        self.ax_d = KPO * (self.dot_x_d - state[3])
+        self.ay_d = KPO * (self.dot_y_d - state[4])
+        self.az_d = KPO * (self.dot_z_d - state[5])
+        
         self.f = self.control_z(state,self.z_d_t,self.vz_d_t)
+
+        self.intgr_vx += self.delta_t * (self.vx_d_t - state[3])
+        self.intgr_vy += self.delta_t * (self.vy_d_t - state[4])
+        self.intgr_vz += self.delta_t * (self.vz_d_t - state[5])
         phi_d, theta_d = self.xy_controller(
             state,
-            self.x_d_t,
-            self.y_d_t,
             self.vx_d_t,
-            self.vy_d_t
+            self.vy_d_t,
+            self.ax_d,
+            self.ay_d
         )
         tau_phi, tau_theta, tau_psi = self.attitude_controller(
             state,

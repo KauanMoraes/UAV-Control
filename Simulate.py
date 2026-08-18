@@ -5,15 +5,17 @@ from scipy.integrate import solve_ivp
 from control import Controller 
 from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
-trajectory = z_rampa
-controller = Controller(trajectory=trajectory)
-closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
-control_z, z_d= controller.control_z,controller.z_d,
-DIST_FORCE, DIST_START, DIST_END = controller.DIST_FORCE,controller.DIST_START, controller.DIST_END
-state0 = np.zeros(12)
+trajectory = line_trajectory
+num = 10000
 t_end = 40
 t_span = (0, t_end)
-t_eval = np.linspace(0, t_end, 5000)
+t_eval = np.linspace(0, t_end, num)
+controller = Controller(delta_t = t_end/num, trajectory=trajectory)
+closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
+control_z = controller.control_z
+DIST_FORCE, DIST_START, DIST_END = controller.DIST_FORCE,controller.DIST_START, controller.DIST_END
+state0 = np.zeros(12)
+
 
 sol = solve_ivp(closed_loop_dynamics, t_span, state0, t_eval=t_eval)
 
@@ -22,8 +24,6 @@ t = sol.t
 x = sol.y[0]
 y = sol.y[1]
 z = sol.y[2]
-# z_d importé depuis control.py
-
 phi = sol.y[6]
 theta = sol.y[7]
 psi = sol.y[8]
@@ -45,8 +45,6 @@ for k in range(len(t)):
     vx_d_k,vy_d_k,vz_d_k = controller.outer_controller(state_k,x_d_k, y_d_k, z_d_k)
     phi_d_k, theta_d_k = xy_controller(
         state_k,
-        x_d_k,
-        y_d_k,
         vx_d_k,
         vy_d_k
     )
@@ -76,18 +74,19 @@ f_values = np.array(f_values)
 n_ss = int(len(t) * 0.2)  # last 20 % for the stationary state
 
 # --- Z : transitory response (0 → z_d) ---
+z_d_target = z_d_values[-1]
 z_max = np.max(z)
-z_overshoot = max(0.0, (z_max - z_d) / z_d * 100) if z_d != 0 else 0.0
+z_overshoot = max(0.0, (z_max - z_d_target) / z_d_target * 100) if z_d_target != 0 else 0.0
 
-idx10 = np.where(z >= 0.1 * z_d)[0]
-idx90 = np.where(z >= 0.9 * z_d)[0]
+idx10 = np.where(z >= 0.1 * z_d_target)[0]
+idx90 = np.where(z >= 0.9 * z_d_target)[0]
 tr_z = (t[idx90[0]] - t[idx10[0]]) if (len(idx10) and len(idx90)) else float('nan')
 t_peak_z = t[np.argmax(z)]
 
-idx_tau = np.where(z >= 0.632 * z_d)[0]
+idx_tau = np.where(z >= 0.632 * z_d_target)[0]
 tau_z = t[idx_tau[0]] if len(idx_tau) else float('nan')
 
-err_ss_z = abs(z_d - np.mean(z[-n_ss:]))
+err_ss_z = abs(z_d_target - np.mean(z[-n_ss:]))
 
 # --- X, Y : suivi de trajectoire circulaire ---
 e_x = x_d_values - x
@@ -103,7 +102,7 @@ idx_conv = np.where(e_xy < SEUIL_XY)[0]
 t_conv_xy = t[idx_conv[0]] if len(idx_conv) else float('nan')
 
 print("\n========== Performance Metrics ==========")
-print(f"\n  [Z]  Altitude   (Target : {z_d:.1f} m)")
+print(f"\n  [Z]  Altitude   (Target : {z_d_target:.1f} m)")
 print(f"       Time Constant (tau)    : {tau_z:.2f} s  (63.2% of z_d)")
 print(f"       Rise Time (10%->90%)   : {tr_z:.2f} s  (~2.2*tau)")
 print(f"       Overshoot              : {z_overshoot:.1f} %")
@@ -168,7 +167,7 @@ axs[0, 1].legend()
 # 3. Altitude
 # ==========================
 axs[1, 0].plot(t, z, label="z real")
-axs[1, 0].plot(t, z_d_values, "--", label=f"z desired ({z_d} m)")
+axs[1, 0].plot(t, z_d_values, "--", label=f"z desired ({z_d_target} m)")
 
 axs[1, 0].set_title("Altitude")
 axs[1, 0].set_xlabel("Time [s]")
