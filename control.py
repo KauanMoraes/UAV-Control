@@ -19,24 +19,24 @@ class Controller:
         self.Jjb = Jjb
 
         # Gains altitude
-        self.KP_Z = 1
-        self.KD_Z = 2
+        self.KP_Z = 4.0
+        self.KD_Z = 3.0
 
         # Gains attitude inner loop
-        self.KP_PSI = 4.0
-        self.KD_PSI = 1.5
+        self.KP_PSI = 40.0
+        self.KD_PSI = 12.0
 
-        self.KP_PHI = 10
-        self.KD_PHI = 5.0
+        self.KP_PHI = 100.0
+        self.KD_PHI = 20.0
 
-        self.KP_THETA = 10
-        self.KD_THETA = 5.0
+        self.KP_THETA = 100.0
+        self.KD_THETA = 20.0
 
-        self.KP_X = 1.4  # 2.0
-        self.KD_X = 2.1
+        self.KP_X = 8.0
+        self.KD_X = 5.0
 
-        self.KP_Y = 1.4  # 2.0
-        self.KD_Y = 2.1
+        self.KP_Y = 8.0
+        self.KD_Y = 5.0
 
         # Hypothesis of small angles XY
         self.MAX_ANGLE = np.deg2rad(15)
@@ -73,7 +73,8 @@ class Controller:
         e_dot_z =  z_dot - vz_d
         kh = np.cos(phi) * np.cos(theta)
 
-        u_z = self.KP_Z*self.intgr_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
+        intgr_vz = state[14] if len(state) >= 15 else self.intgr_vz
+        u_z = self.KP_Z*intgr_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
 
@@ -97,8 +98,11 @@ class Controller:
         evx = vx - vx_d
         evy = vy - vy_d
 
-        U_x = self.KP_X * self.intgr_vx - self.KD_X * evx + ax_d
-        U_y = self.KP_Y * self.intgr_vy - self.KD_Y * evy + ay_d
+        intgr_vx = state[12] if len(state) >= 15 else self.intgr_vx
+        intgr_vy = state[13] if len(state) >= 15 else self.intgr_vy
+
+        U_x = self.KP_X * intgr_vx - self.KD_X * evx + ax_d
+        U_y = self.KP_Y * intgr_vy - self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
         safe_f = np.maximum(f, 0.5 * self.m * self.g)
         arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
@@ -135,7 +139,7 @@ class Controller:
         return tau_phi, tau_theta, tau_psi
 
     def outer_controller(self,state,x_d,y_d,z_d):
-        self.KPO = 3/4 # outer controller constant
+        self.KPO = 1.5 # outer controller constant
         KPO  = self.KPO
         vx_d = KPO * (x_d-state[0])+self.dot_x_d
         vy_d = KPO * (y_d-state[1])+self.dot_y_d
@@ -162,11 +166,28 @@ class Controller:
         self.ay_d = KPO * (self.dot_y_d - state[4])
         self.az_d = KPO * (self.dot_z_d - state[5])
         
+        if len(state) >= 15:
+            self.intgr_vx = state[12]
+            self.intgr_vy = state[13]
+            self.intgr_vz = state[14]
+
         self.f = self.control_z(state,self.vz_d_t,self.az_d)
 
-        self.intgr_vx += self.delta_t * (self.vx_d_t - state[3])
-        self.intgr_vy += self.delta_t * (self.vy_d_t - state[4])
-        self.intgr_vz += self.delta_t * (self.vz_d_t - state[5])
+        d_intgr_vx = self.vx_d_t - state[3]
+        d_intgr_vy = self.vy_d_t - state[4]
+        d_intgr_vz = self.vz_d_t - state[5]
+
+        # ANTI-WINDUP: Prevent integral terms from building up when saturated
+        MAX_INT_XY = 4.0 / self.KP_X
+        if abs(self.intgr_vx) > MAX_INT_XY and np.sign(d_intgr_vx) == np.sign(self.intgr_vx):
+            d_intgr_vx = 0
+        if abs(self.intgr_vy) > MAX_INT_XY and np.sign(d_intgr_vy) == np.sign(self.intgr_vy):
+            d_intgr_vy = 0
+            
+        MAX_INT_Z = 15.0 / self.KP_Z
+        if abs(self.intgr_vz) > MAX_INT_Z and np.sign(d_intgr_vz) == np.sign(self.intgr_vz):
+            d_intgr_vz = 0
+
         phi_d, theta_d = self.xy_controller(
             state,
             self.f,
@@ -184,11 +205,17 @@ class Controller:
         )
 
         control = np.array([self.f, tau_phi, tau_theta, tau_psi])
-        state_dot = drone_dynamics(t, state, control)
+        state_dot = drone_dynamics(t, state[:12], control)
 
         # Apply wind disturbance as external force on velocity states
         if self.DIST_START <= t <= self.DIST_END:
             state_dot[3:6] += self.DIST_FORCE / self.m
 
-        return state_dot
+        if len(state) >= 15:
+            return np.concatenate((state_dot, [d_intgr_vx, d_intgr_vy, d_intgr_vz]))
+        else:
+            self.intgr_vx += self.delta_t * d_intgr_vx
+            self.intgr_vy += self.delta_t * d_intgr_vy
+            self.intgr_vz += self.delta_t * d_intgr_vz
+            return state_dot
 

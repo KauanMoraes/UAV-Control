@@ -5,7 +5,7 @@ from scipy.integrate import solve_ivp
 from control import Controller 
 from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
-trajectory = line_trajectory
+trajectory = circular_trajectory
 num = 5000
 t_end = 15
 t_span = (0, t_end)
@@ -14,7 +14,7 @@ controller = Controller(delta_t = t_end/num, trajectory=trajectory)
 closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
 control_z = controller.control_z
 DIST_FORCE, DIST_START, DIST_END = controller.DIST_FORCE,controller.DIST_START, controller.DIST_END
-state0 = np.zeros(12)
+state0 = np.zeros(15)
 
 
 sol = solve_ivp(closed_loop_dynamics, t_span, state0, t_eval=t_eval)
@@ -41,14 +41,19 @@ for k in range(len(t)):
 
     state_k = sol.y[:, k]
 
+    # Evaluate closed_loop_dynamics silently to correctly set internal feedforward terms (self.dot_x_d, ax_d, etc.)
+    controller.closed_loop_dynamics(t[k], state_k)
+
     # Desired trajectory at instant t[k]
     x_d_k, y_d_k, z_d_k = trajectory(t[k])
     vx_d_k,vy_d_k,vz_d_k = controller.outer_controller(state_k,x_d_k, y_d_k, z_d_k)
-    f_k = control_z(state_k,vz_d_k)
+    f_k = control_z(state_k,vz_d_k, controller.az_d)
     phi_d_k, theta_d_k = xy_controller(
         state_k, f_k,
         vx_d_k,
-        vy_d_k
+        vy_d_k,
+        controller.ax_d,
+        controller.ay_d
     )
 
 
