@@ -173,6 +173,7 @@ class Controller:
 
         self.f = self.control_z(state,self.vz_d_t,self.az_d)
 
+        # o qnt o termo da integral deve mudar
         d_intgr_vx = self.vx_d_t - state[3]
         d_intgr_vy = self.vy_d_t - state[4]
         d_intgr_vz = self.vz_d_t - state[5]
