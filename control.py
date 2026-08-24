@@ -19,7 +19,7 @@ class Controller:
         self.Jjb = Jjb
 
         # Gains altitude
-        self.KP_Z = 4.0
+        self.KP_Z = 8.0
         self.KD_Z = 3.0
 
         # Gains attitude inner loop
@@ -42,7 +42,7 @@ class Controller:
         self.MAX_ANGLE = np.deg2rad(15)
 
         # Disturbance — wind step force in inertial frame [N]
-        self.DIST_FORCE = np.array([2.5, 0.0, 0.0])  # 3N in X  o controle theta satura
+        self.DIST_FORCE = np.array([0.0, 0.0, 2.0])  # 3N in X  o controle theta satura
         self.DIST_START = 10.0                          # onset time [s]
         self.DIST_END   = 20.0                         # end time [s]
 
@@ -142,7 +142,7 @@ class Controller:
         KPO  = self.KPO
         vx_d = KPO * (x_d-state[0])+self.dot_x_d
         vy_d = KPO * (y_d-state[1])+self.dot_y_d
-        vz_d = KPO * (z_d-state[2])+self.dot_z_d
+        vz_d = 2*KPO * (z_d-state[2])+self.dot_z_d
         return vx_d,vy_d,vz_d
 
 
