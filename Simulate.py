@@ -7,7 +7,7 @@ from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
 trajectory = circular_trajectory
 num = 5000
-t_end = 15
+t_end = 25
 t_span = (0, t_end)
 t_eval = np.linspace(0, t_end, num)
 controller = Controller(delta_t = t_end/num, trajectory=trajectory)

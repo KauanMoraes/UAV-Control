@@ -42,9 +42,9 @@ class Controller:
         self.MAX_ANGLE = np.deg2rad(15)
 
         # Disturbance — wind step force in inertial frame [N]
-        self.DIST_FORCE = np.array([0.0, 0.0, 2.0])  # 3N in X
+        self.DIST_FORCE = np.array([2.5, 0.0, 0.0])  # 3N in X  o controle theta satura
         self.DIST_START = 10.0                          # onset time [s]
-        self.DIST_END   = 10.0                         # end time [s]
+        self.DIST_END   = 20.0                         # end time [s]
 
         # References
         self.x_d = 0.0
@@ -67,7 +67,6 @@ class Controller:
         z_dot = state[5]
         phi = state[6]
         theta = state[7]
-        self.z_d = self.traj_fn
 
         #e_z = z - z_d
         e_dot_z =  z_dot - vz_d
@@ -146,8 +145,6 @@ class Controller:
         vz_d = KPO * (z_d-state[2])+self.dot_z_d
         return vx_d,vy_d,vz_d
 
-    def derivative(self, u, u_new, delta_t):
-        return (u_new - u) / delta_t
 
     def closed_loop_dynamics(self, t, state):
         self.x_d_t, self.y_d_t, self.z_d_t = self.traj_fn(t)
