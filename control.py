@@ -42,7 +42,7 @@ class Controller:
         self.MAX_ANGLE = np.deg2rad(15)
 
         # Disturbance — wind step force in inertial frame [N]
-        self.DIST_FORCE = np.array([0.0, 0.0, 2.0])  # 3N in X  o controle theta satura
+        self.DIST_FORCE = np.array([2.0, 0.0, 2.0])  # 3N in X  o controle theta satura
         self.DIST_START = 10.0                          # onset time [s]
         self.DIST_END   = 20.0                         # end time [s]
 
@@ -155,9 +155,9 @@ class Controller:
         # A derivada exata de vx_d = KPO * (x_d - x) é ax_d = KPO * (dot_x_d - v_x).
         dt_sim = self.delta_t/3
         x_d_old, y_d_old, z_d_old = self.traj_fn(t - dt_sim) if t>0 else self.traj_fn(t)
-        self.dot_x_d = (self.x_d_t - x_d_old) / dt_sim
-        self.dot_y_d = (self.y_d_t - y_d_old) / dt_sim
-        self.dot_z_d = (self.z_d_t - z_d_old) / dt_sim
+        self.dot_x_d = np.min([(self.x_d_t - x_d_old) / dt_sim, 10.0]) # Limit the derivative to avoid numerical issues
+        self.dot_y_d = np.min([(self.y_d_t - y_d_old) / dt_sim, 10.0])
+        self.dot_z_d = np.min([(self.z_d_t - z_d_old) / dt_sim, 10.0])
         KPO  = self.KPO
         self.ax_d = KPO * (self.dot_x_d - state[3])
         self.ay_d = KPO * (self.dot_y_d - state[4])
@@ -185,6 +185,11 @@ class Controller:
         MAX_INT_Z = 15.0 / self.KP_Z
         if abs(self.intgr_vz) > MAX_INT_Z and np.sign(d_intgr_vz) == np.sign(self.intgr_vz):
             d_intgr_vz = 0
+
+        # Implementar!!
+        # sat_x = np.clip(d_intgr_vx, -MAX_INT_XY, MAX_INT_XY)
+        # sat_y = np.clip(d_intgr_vy, -MAX_INT_XY, MAX_INT_XY)
+        # sat_z = np.clip(d_intgr_vz, -MAX_INT_Z, MAX_INT_Z)
 
         phi_d, theta_d = self.xy_controller(
             state,
