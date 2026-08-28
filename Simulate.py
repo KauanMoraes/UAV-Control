@@ -35,6 +35,7 @@ f_values = []
 x_d_values = []
 y_d_values = []
 z_d_values = []
+tau_values = []
 controller.load_parameters(trajectory)
 
 for k in range(len(t)):
@@ -55,7 +56,15 @@ for k in range(len(t)):
         controller.ax_d,
         controller.ay_d
     )
+    tau_phi, tau_theta, tau_psi = controller.attitude_controller(
+                state_k,
+                phi_d_k,
+                theta_d_k,
+                psi_d=0.0,
+                vpsi_d=0.0
+            )
 
+    tau_values.append([tau_phi, tau_theta, tau_psi])
 
     x_d_values.append(x_d_k)
     y_d_values.append(y_d_k)
@@ -72,7 +81,7 @@ z_d_values = np.array(z_d_values)
 phi_d_values = np.array(phi_d_values)
 theta_d_values = np.array(theta_d_values)
 f_values = np.array(f_values)
-
+tau_values = np.array(tau_values)
 
 # ============================================================
 # Performance Metrics
@@ -199,15 +208,18 @@ axs[1, 1].grid(True)
 axs[1, 1].legend()
 
 # ==========================
-# 5. Thrust
+# 5. Control Signals
 # ==========================
-axs[2, 0].plot(t, f_values)
+axs[2, 0].plot(t, f_values,label = "f")
+axs[2,0].plot(t, tau_values[:,0], label="M_φ")
+axs[2,0].plot(t, tau_values[:,1], label="M_θ")
+axs[2,0].plot(t, tau_values[:,2], label="M_ψ")
 
-axs[2, 0].set_title("Thrust Command")
+axs[2, 0].set_title("Control Signals")
 axs[2, 0].set_xlabel("Time [s]")
-axs[2, 0].set_ylabel("Force [N]")
+axs[2, 0].set_ylabel("Force & Torque [N&Nm]")
 axs[2, 0].grid(True)
-
+axs[2, 0].legend()
 # ==========================
 # 5. Error Following
 # ==========================
