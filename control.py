@@ -19,8 +19,8 @@ class Controller:
         self.Jjb = Jjb
 
         # Gains altitude
-        self.KP_Z = 8.0
-        self.KD_Z = 3.0
+        self.KP_Z = 16.0
+        self.KD_Z = 6.0
 
         # Gains attitude inner loop
         self.KP_PSI = 40.0
