@@ -76,8 +76,8 @@ class Controller:
         u_z = self.KP_Z*intgr_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
-
-        return f
+        safe_f = np.clip(f, 0.25 * self.m * self.g, 4.0 * self.m * self.g)
+        return safe_f
 
 
 
@@ -103,8 +103,7 @@ class Controller:
         U_x = self.KP_X * intgr_vx - self.KD_X * evx + ax_d
         U_y = self.KP_Y * intgr_vy - self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
-        safe_f = np.clip(f, 0.25 * self.m * self.g, 4.0 * self.m * self.g)
-        arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
+        arr_thphi = R_psi_inv@ Uxy *self.m/f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
         if np.abs(arr_thphi[1])>1:
             print(f'-sen(phi_d):{arr_thphi[1]}')
         phi_d = -np.arcsin(np.clip(arr_thphi[1],-1,1))
