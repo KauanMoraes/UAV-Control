@@ -103,7 +103,7 @@ class Controller:
         U_x = self.KP_X * intgr_vx - self.KD_X * evx + ax_d
         U_y = self.KP_Y * intgr_vy - self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
-        safe_f = np.maximum(f, 0.5 * self.m * self.g)
+        safe_f = np.clip(f, 0.25 * self.m * self.g, 4.0 * self.m * self.g)
         arr_thphi = R_psi_inv@ Uxy *self.m/safe_f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
         if np.abs(arr_thphi[1])>1:
             print(f'-sen(phi_d):{arr_thphi[1]}')
