@@ -20,7 +20,7 @@ class Controller:
 
         # Gains altitude
         self.KP_Z = 16.0
-        self.KD_Z = 6.0
+        self.KD_Z = 7.0
 
         # Gains attitude inner loop
         self.KP_PSI = 40.0
@@ -76,7 +76,7 @@ class Controller:
         u_z = self.KP_Z*intgr_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
-        safe_f = np.clip(f, 0.25 * self.m * self.g, 4.0 * self.m * self.g)
+        safe_f = np.clip(f, 0.25 * self.m * self.g, 2.0 * self.m * self.g)
         return safe_f
 
 
