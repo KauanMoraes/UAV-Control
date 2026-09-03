@@ -2,8 +2,9 @@ import numpy as np
 
 
 def circular_trajectory(t, R=2.0, omega=0.5): #1.0): omega 1.0 diverge pois desreipeita a hipótese de velocidades baixas
-    x_d = R * np.cos(omega * t)
-    y_d = R * np.sin(omega * t)
+    t += np.pi
+    x_d = R * np.cos(omega * t) 
+    y_d = R * (np.sin(omega * t) - 1)
     z_d = 1.0
 
     return x_d, y_d, z_d

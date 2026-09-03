@@ -44,6 +44,8 @@ class Controller:
         # Hypothesis of small angles XY
         self.MAX_ANGLE = np.deg2rad(15)
 
+        self.max_thrust = 2 * self.m * self.g
+
         # Disturbance — wind step force in inertial frame [N]
         self.DIST_FORCE = np.array([2.0, 0.0, 2.0])  # 3N in X  o controle theta satura
         self.DIST_START = 10.0                          # onset time [s]
@@ -86,7 +88,7 @@ class Controller:
         u_z = self.KP_Z*self.intgr_e_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
-        safe_f = np.clip(f, 0.25 * self.m * self.g, 2.0 * self.m * self.g)
+        safe_f = np.clip(f, 0.25 * self.m * self.g, self.max_thrust)
         return safe_f
 
 
