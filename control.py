@@ -18,6 +18,8 @@ class Controller:
         self.Jja = Jja
         self.Jjb = Jjb
 
+        self.KPO = 1.5 # outer controller constant
+
         # Gains altitude
         self.KP_Z = 16.0
         self.KD_Z = 7.0
@@ -137,7 +139,6 @@ class Controller:
         return tau_phi, tau_theta, tau_psi
 
     def outer_controller(self,state,x_d,y_d,z_d):
-        self.KPO = 1.5 # outer controller constant
         KPO  = self.KPO
         vx_d = KPO * (x_d-state[0])+self.dot_x_d
         vy_d = KPO * (y_d-state[1])+self.dot_y_d
@@ -147,8 +148,6 @@ class Controller:
 
     def closed_loop_dynamics(self, t, state):
         self.x_d_t, self.y_d_t, self.z_d_t = self.traj_fn(t)
-        self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,
-                                                self.x_d_t, self.y_d_t, self.z_d_t)
         # Como o solver Runge-Kutta do solve_ivp avalia vários sub-passos no tempo,
         # salvar um estado anterior (old_vx_d_t) diretamente aqui dentro não funciona 
         # A derivada exata de vx_d = KPO * (x_d - x) é ax_d = KPO * (dot_x_d - v_x).
@@ -161,7 +160,9 @@ class Controller:
         self.ax_d = KPO * (self.dot_x_d - state[3])
         self.ay_d = KPO * (self.dot_y_d - state[4])
         self.az_d = KPO * (self.dot_z_d - state[5])
-        
+
+        self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,
+                                                self.x_d_t, self.y_d_t, self.z_d_t)
         if len(state) >= 15:
             self.intgr_vx = state[12]
             self.intgr_vy = state[13]
@@ -174,7 +175,7 @@ class Controller:
         d_intgr_vy = self.vy_d_t - state[4]
         d_intgr_vz = self.vz_d_t - state[5]
 
-        # ANTI-WINDUP: Prevent integral terms from building up when saturated
+        # Clamping: Prevent integral terms from building up when saturated
         MAX_INT_XY = 4.0 / self.KP_X
         if abs(self.intgr_vx) > MAX_INT_XY and np.sign(d_intgr_vx) == np.sign(self.intgr_vx):
             d_intgr_vx = 0
