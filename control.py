@@ -19,6 +19,7 @@ class Controller:
         self.Jjb = Jjb
 
         self.KPO = 1.5 # outer controller constant
+        self.k_aw = 2.0 # anti-windup constant
 
         # Gains altitude
         self.KP_Z = 16.0
@@ -53,9 +54,17 @@ class Controller:
         self.y_d = 0.0
         self.z_d = 0.0
 
-        self.intgr_vx = 0.0
-        self.intgr_vy = 0.0
-        self.intgr_vz = 0.0
+        self.intgr_limit = 5.0  # Limit for the integral term to prevent windup
+        self.mem_intgr_e_vx = 0.0  # variável de memória para o termo integral do erro de velocidade em x
+        self.mem_intgr_e_vy = 0.0
+        self.mem_intgr_e_vz = 0.0
+        self.intgr_e_vx = 0.0
+        self.intgr_e_vy = 0.0
+        self.intgr_e_vz = 0.0
+
+        self.e_vx = 0.0
+        self.e_vy = 0.0
+        self.e_vz = 0.0
 
         self.ax_d = 0
         self.ay_d = 0
@@ -74,8 +83,7 @@ class Controller:
         e_dot_z =  z_dot - vz_d
         kh = np.cos(phi) * np.cos(theta)
 
-        intgr_vz = state[14] if len(state) >= 15 else self.intgr_vz
-        u_z = self.KP_Z*intgr_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
+        u_z = self.KP_Z*self.intgr_e_vz - self.KD_Z*e_dot_z + az_d #Control law for altitude
 
         f = self.m * (self.g + u_z) / kh
         safe_f = np.clip(f, 0.25 * self.m * self.g, 2.0 * self.m * self.g)
@@ -99,11 +107,9 @@ class Controller:
         evx = vx - vx_d
         evy = vy - vy_d
 
-        intgr_vx = state[12] if len(state) >= 15 else self.intgr_vx
-        intgr_vy = state[13] if len(state) >= 15 else self.intgr_vy
 
-        U_x = self.KP_X * intgr_vx - self.KD_X * evx + ax_d
-        U_y = self.KP_Y * intgr_vy - self.KD_Y * evy + ay_d
+        U_x = self.KP_X * self.intgr_e_vx - self.KD_X * evx + ax_d
+        U_y = self.KP_Y * self.intgr_e_vy - self.KD_Y * evy + ay_d
         Uxy = np.array([U_x,U_y])
         arr_thphi = R_psi_inv@ Uxy *self.m/f   # array [sin(theta_d)cos(phi_d), -sin(phi_d)]
         if np.abs(arr_thphi[1])>1:
@@ -163,33 +169,23 @@ class Controller:
 
         self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,
                                                 self.x_d_t, self.y_d_t, self.z_d_t)
-        if len(state) >= 15:
-            self.intgr_vx = state[12]
-            self.intgr_vy = state[13]
-            self.intgr_vz = state[14]
 
         self.f = self.control_z(state,self.vz_d_t,self.az_d)
 
         # o qnt o termo da integral deve mudar
-        d_intgr_vx = self.vx_d_t - state[3]
-        d_intgr_vy = self.vy_d_t - state[4]
-        d_intgr_vz = self.vz_d_t - state[5]
+        self.e_vx = self.vx_d_t - state[3]
+        self.e_vy = self.vy_d_t - state[4]
+        self.e_vz = self.vz_d_t - state[5]
 
-        # Clamping: Prevent integral terms from building up when saturated
-        MAX_INT_XY = 4.0 / self.KP_X
-        if abs(self.intgr_vx) > MAX_INT_XY and np.sign(d_intgr_vx) == np.sign(self.intgr_vx):
-            d_intgr_vx = 0
-        if abs(self.intgr_vy) > MAX_INT_XY and np.sign(d_intgr_vy) == np.sign(self.intgr_vy):
-            d_intgr_vy = 0
-            
-        MAX_INT_Z = 15.0 / self.KP_Z
-        if abs(self.intgr_vz) > MAX_INT_Z and np.sign(d_intgr_vz) == np.sign(self.intgr_vz):
-            d_intgr_vz = 0
-
-        # Implementar!!
-        # sat_x = np.clip(d_intgr_vx, -MAX_INT_XY, MAX_INT_XY)
-        # sat_y = np.clip(d_intgr_vy, -MAX_INT_XY, MAX_INT_XY)
-        # sat_z = np.clip(d_intgr_vz, -MAX_INT_Z, MAX_INT_Z)
+        self.mem_intgr_e_vx += dt_sim * (self.e_vx - self.k_aw * 
+                                     (self.intgr_e_vx - np.clip(self.mem_intgr_e_vx, -self.intgr_limit, self.intgr_limit)))
+        self.mem_intgr_e_vy += dt_sim * (self.e_vy - self.k_aw * 
+                                     (self.intgr_e_vy - np.clip(self.mem_intgr_e_vy, -self.intgr_limit, self.intgr_limit)))
+        self.mem_intgr_e_vz += dt_sim * (self.e_vz - self.k_aw * 
+                                     (self.intgr_e_vz - np.clip(self.mem_intgr_e_vz, -self.intgr_limit, self.intgr_limit)))
+        self.intgr_e_vx = np.clip(self.mem_intgr_e_vx, -self.intgr_limit, self.intgr_limit)
+        self.intgr_e_vy = np.clip(self.mem_intgr_e_vy, -self.intgr_limit, self.intgr_limit)
+        self.intgr_e_vz = np.clip(self.mem_intgr_e_vz, -self.intgr_limit, self.intgr_limit)
 
         phi_d, theta_d = self.xy_controller(
             state,
@@ -214,11 +210,9 @@ class Controller:
         if self.DIST_START <= t <= self.DIST_END:
             state_dot[3:6] += self.DIST_FORCE / self.m
 
-        if len(state) >= 15:
-            return np.concatenate((state_dot, [d_intgr_vx, d_intgr_vy, d_intgr_vz]))
-        else:
-            self.intgr_vx += self.delta_t * d_intgr_vx
-            self.intgr_vy += self.delta_t * d_intgr_vy
-            self.intgr_vz += self.delta_t * d_intgr_vz
-            return state_dot
+
+        self.intgr_e_vx += self.delta_t * self.e_vx
+        self.intgr_e_vy += self.delta_t * self.e_vy
+        self.intgr_e_vz += self.delta_t * self.e_vz
+        return state_dot
 
