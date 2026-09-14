@@ -55,6 +55,12 @@ class Controller:
         self.x_d = 0.0
         self.y_d = 0.0
         self.z_d = 0.0
+        self.vx_d = 0.0
+        self.vy_d = 0.0
+        self.vz_d = 0.0
+        self.phi_d = 0.0
+        self.theta_d = 0.0
+        self.control = np.zeros(4)
 
         self.intgr_limit = 5.0  # Limit for the integral term to prevent windup
         self.mem_intgr_e_vx = 0.0  # variável de memória para o termo integral do erro de velocidade em x
@@ -90,8 +96,6 @@ class Controller:
         f = self.m * (self.g + u_z) / kh
         safe_f = np.clip(f, 0.25 * self.m * self.g, self.max_thrust)
         return safe_f
-
-
 
     def xy_controller(self,state, f, vx_d, vy_d, ax_d=0.0, ay_d=0.0):
         R_psi = np.array([[np.cos(state[8]),-np.sin(state[8])],
@@ -153,31 +157,12 @@ class Controller:
         vz_d = 2*KPO * (z_d-state[2])+self.dot_z_d
         return vx_d,vy_d,vz_d
 
-
-    def closed_loop_dynamics(self, t, state):
-        self.x_d_t, self.y_d_t, self.z_d_t = self.traj_fn(t)
-        # Como o solver Runge-Kutta do solve_ivp avalia vários sub-passos no tempo,
-        # salvar um estado anterior (old_vx_d_t) diretamente aqui dentro não funciona 
-        # A derivada exata de vx_d = KPO * (x_d - x) é ax_d = KPO * (dot_x_d - v_x).
-        dt_sim = self.delta_t/3
-        x_d_old, y_d_old, z_d_old = self.traj_fn(t - dt_sim) if t>0 else self.traj_fn(t)
-        self.dot_x_d = np.min([(self.x_d_t - x_d_old) / dt_sim, 10.0]) # Limit the derivative to avoid numerical issues
-        self.dot_y_d = np.min([(self.y_d_t - y_d_old) / dt_sim, 10.0])
-        self.dot_z_d = np.min([(self.z_d_t - z_d_old) / dt_sim, 10.0])
-        KPO  = self.KPO
-        self.ax_d = KPO * (self.dot_x_d - state[3])
-        self.ay_d = KPO * (self.dot_y_d - state[4])
-        self.az_d = KPO * (self.dot_z_d - state[5])
-
-        self.vx_d_t, self.vy_d_t, self.vz_d_t = self.outer_controller(state,
-                                                self.x_d_t, self.y_d_t, self.z_d_t)
-
-        self.f = self.control_z(state,self.vz_d_t,self.az_d)
-
+    def update_integrals(self, state):
+        dt_sim = self.delta_t
         # o qnt o termo da integral deve mudar
-        self.e_vx = self.vx_d_t - state[3]
-        self.e_vy = self.vy_d_t - state[4]
-        self.e_vz = self.vz_d_t - state[5]
+        self.e_vx = self.vx_d - state[3]
+        self.e_vy = self.vy_d - state[4]
+        self.e_vz = self.vz_d - state[5]
 
         self.mem_intgr_e_vx += dt_sim * (self.e_vx - self.k_aw * 
                                      (self.intgr_e_vx - np.clip(self.mem_intgr_e_vx, -self.intgr_limit, self.intgr_limit)))
@@ -189,32 +174,48 @@ class Controller:
         self.intgr_e_vy = np.clip(self.mem_intgr_e_vy, -self.intgr_limit, self.intgr_limit)
         self.intgr_e_vz = np.clip(self.mem_intgr_e_vz, -self.intgr_limit, self.intgr_limit)
 
-        phi_d, theta_d = self.xy_controller(
+    def closed_loop_dynamics(self, t, state):
+        self.x_d, self.y_d, self.z_d = self.traj_fn(t)
+        # Como o solver Runge-Kutta do solve_ivp avalia vários sub-passos no tempo,
+        # salvar um estado anterior (old_vx_d) diretamente aqui dentro não funciona 
+        # A derivada exata de vx_d = KPO * (x_d - x) é ax_d = KPO * (dot_x_d - v_x).
+        dt_sim = self.delta_t/3
+        x_d_old, y_d_old, z_d_old = self.traj_fn(t - dt_sim) if t>0 else self.traj_fn(t)
+        self.dot_x_d = np.min([(self.x_d - x_d_old) / dt_sim, 10.0]) # Limit the derivative to avoid numerical issues
+        self.dot_y_d = np.min([(self.y_d - y_d_old) / dt_sim, 10.0])
+        self.dot_z_d = np.min([(self.z_d - z_d_old) / dt_sim, 10.0])
+        KPO  = self.KPO
+        self.ax_d = KPO * (self.dot_x_d - state[3])
+        self.ay_d = KPO * (self.dot_y_d - state[4])
+        self.az_d = KPO * (self.dot_z_d - state[5])
+
+        self.vx_d, self.vy_d, self.vz_d = self.outer_controller(state,
+                                                self.x_d, self.y_d, self.z_d)
+
+        self.f = self.control_z(state,self.vz_d,self.az_d)
+
+        self.phi_d, self.theta_d = self.xy_controller(
             state,
             self.f,
-            self.vx_d_t,
-            self.vy_d_t,
+            self.vx_d,
+            self.vy_d,
             self.ax_d,
             self.ay_d
         )
         tau_phi, tau_theta, tau_psi = self.attitude_controller(
             state,
-            phi_d,
-            theta_d,
+            self.phi_d,
+            self.theta_d,
             psi_d=0.0,
             vpsi_d=0.0
         )
 
-        control = np.array([self.f, tau_phi, tau_theta, tau_psi])
-        state_dot = drone_dynamics(t, state[:12], control)
+        self.control = np.array([self.f, tau_phi, tau_theta, tau_psi])
+        state_dot = drone_dynamics(t, state[:12], self.control)
 
         # Apply wind disturbance as external force on velocity states
         if self.DIST_START <= t <= self.DIST_END:
             state_dot[3:6] += self.DIST_FORCE / self.m
 
-
-        self.intgr_e_vx += self.delta_t * self.e_vx
-        self.intgr_e_vy += self.delta_t * self.e_vy
-        self.intgr_e_vz += self.delta_t * self.e_vz
         return state_dot
 

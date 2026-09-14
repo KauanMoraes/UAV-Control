@@ -6,27 +6,14 @@ from control import Controller
 from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
 trajectory = circular_trajectory
-num = 5000
+dt = 0.01
 t_end = 25
-t_span = (0, t_end)
-t_eval = np.linspace(0, t_end, num)
-controller = Controller(delta_t = t_end/num, trajectory=trajectory)
+controller = Controller(delta_t = dt, trajectory=trajectory)
 closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
-control_z = controller.control_z
+control_z,outer_controller = controller.control_z, controller.outer_controller
 DIST_FORCE, DIST_START, DIST_END = controller.DIST_FORCE,controller.DIST_START, controller.DIST_END
-state0 = np.zeros(15)
-
-
-sol = solve_ivp(closed_loop_dynamics, t_span, state0, t_eval=t_eval)
-
-t = sol.t
-
-x = sol.y[0]
-y = sol.y[1]
-z = sol.y[2]
-phi = sol.y[6]
-theta = sol.y[7]
-psi = sol.y[8]
+state = np.zeros(12)
+states_history = []
 
 phi_d_values = []
 theta_d_values = []
@@ -36,76 +23,67 @@ x_d_values = []
 y_d_values = []
 z_d_values = []
 tau_values = []
-controller.load_parameters(trajectory)
 
-for k in range(len(t)):
+l_x = []
+l_y = []
+l_z = []
+l_phi = []
+l_theta = []
+l_psi = []
 
-    state_k = sol.y[:, k]
+t_range = np.arange(0, t_end, controller.delta_t)
+for t in t_range:
+    states_history.append(state)
+    controller.update_integrals(state)
+    sol = solve_ivp(closed_loop_dynamics, 
+                     [t, t + controller.delta_t], state, t_eval=[t + controller.delta_t])
+    state = sol.y[:,-1]
 
-    # Evaluate closed_loop_dynamics silently to correctly set internal feedforward terms (self.dot_x_d, ax_d, etc.)
-    controller.closed_loop_dynamics(t[k], state_k)
+    l_x.append(state[0])
+    l_y.append(state[1])
+    l_z.append(state[2])
+    l_phi.append(state[6])
+    l_theta.append(state[7])
+    l_psi.append(state[8])
 
-    # Desired trajectory at instant t[k]
-    x_d_k, y_d_k, z_d_k = trajectory(t[k])
-    vx_d_k,vy_d_k,vz_d_k = controller.outer_controller(state_k,x_d_k, y_d_k, z_d_k)
-    f_k = control_z(state_k,vz_d_k, controller.az_d)
-    phi_d_k, theta_d_k = xy_controller(
-        state_k, f_k,
-        vx_d_k,
-        vy_d_k,
-        controller.ax_d,
-        controller.ay_d
-    )
-    tau_phi, tau_theta, tau_psi = controller.attitude_controller(
-                state_k,
-                phi_d_k,
-                theta_d_k,
-                psi_d=0.0,
-                vpsi_d=0.0
-            )
+    x_d_values.append(controller.x_d)
+    y_d_values.append(controller.y_d)
+    z_d_values.append(controller.z_d)
+    phi_d_values.append(controller.phi_d)
+    theta_d_values.append(controller.theta_d)
+    f_values.append(controller.control[0])
+    tau_values.append(controller.control[1:])
 
-    tau_values.append([tau_phi, tau_theta, tau_psi])
 
-    x_d_values.append(x_d_k)
-    y_d_values.append(y_d_k)
-    z_d_values.append(z_d_k)
-
-    phi_d_values.append(phi_d_k)
-    theta_d_values.append(theta_d_k)
-    f_values.append(f_k)
-
-x_d_values = np.array(x_d_values)
-y_d_values = np.array(y_d_values)
-z_d_values = np.array(z_d_values)
-
-phi_d_values = np.array(phi_d_values)
-theta_d_values = np.array(theta_d_values)
-f_values = np.array(f_values)
-tau_values = np.array(tau_values)
+l_x, l_y, l_z = np.array(l_x), np.array(l_y), np.array(l_z)
+l_phi, l_theta, l_psi = np.array(l_phi), np.array(l_theta), np.array(l_psi)
+x_d_values, y_d_values, z_d_values = np.array(x_d_values), np.array(y_d_values), np.array(z_d_values)
+theta_d_values, phi_d_values = np.array(theta_d_values), np.array(phi_d_values)
+f_values, tau_values = np.array(f_values), np.array(tau_values)
 
 # ============================================================
 # Performance Metrics
 # ============================================================
-n_ss = int(len(t) * 0.2)  # last 20 % for the stationary state
+n_ss = int(len(t_range) * 0.2)  # last 20 % for the stationary state
 
 # --- Z : transitory response (0 → z_d) ---
 z_d_target = z_d_values[-1]
-z_max = np.max(z)
+z_max = np.max(l_z)
 z_overshoot = max(0.0, (z_max - z_d_target) / z_d_target * 100) if z_d_target != 0 else 0.0
 
-idx10 = np.where(z >= 0.1 * z_d_target)[0]
-idx90 = np.where(z >= 0.9 * z_d_target)[0]
-tr_z = (t[idx90[0]] - t[idx10[0]]) if (len(idx10) and len(idx90)) else float('nan')
-t_peak_z = t[np.argmax(z)]
+idx10 = np.where(np.array(l_z) >= 0.1 * z_d_target)[0]
+idx90 = np.where(np.array(l_z) >= 0.9 * z_d_target)[0]
+tr_z = (t_range[idx90[0]] - t_range[idx10[0]]) if (len(idx10) and len(idx90)) else float('nan')
+t_peak_z = t_range[np.argmax(l_z)]
 
-idx_tau = np.where(z >= 0.632 * z_d_target)[0]
-tau_z = t[idx_tau[0]] if len(idx_tau) else float('nan')
+idx_tau = np.where(np.array(l_z) >= 0.632 * z_d_target)[0]
+tau_z = t_range[idx_tau[0]] if len(idx_tau) else float('nan')
 
-err_ss_z = abs(z_d_target - np.mean(z[-n_ss:]))
+err_ss_z = abs(z_d_target - np.mean(np.array(l_z)[-n_ss:]))
 
 # --- X, Y : suivi de trajectoire circulaire ---
-e_x = x_d_values - x
-e_y = y_d_values - y
+e_x = x_d_values - np.array(l_x)
+e_y = y_d_values - np.array(l_y)
 e_xy = np.sqrt(e_x**2 + e_y**2)
 
 err_ss_x = np.mean(np.abs(e_x[-n_ss:]))
@@ -114,7 +92,7 @@ err_ss_y = np.mean(np.abs(e_y[-n_ss:]))
 e_xy_peak = np.max(e_xy)
 SEUIL_XY = 0.2  # m — seuil de convergence XY
 idx_conv = np.where(e_xy < SEUIL_XY)[0]
-t_conv_xy = t[idx_conv[0]] if len(idx_conv) else float('nan')
+t_conv_xy = t_range[idx_conv[0]] if len(idx_conv) else float('nan')
 
 print("\n========== Performance Metrics ==========")
 print(f"\n  [Z]  Altitude   (Target : {z_d_target:.1f} m)")
@@ -135,8 +113,8 @@ fig, axs = plt.subplots(3, 2, figsize=(14, 10))
 # 1. Trajectory XY
 # ==========================
 axs[0, 0].plot(
-    x,
-    y,
+    np.array(l_x),
+    np.array(l_y),
     label="Real Trajectory"
 )
 
@@ -157,17 +135,17 @@ axs[0, 0].legend()
 # ==========================
 # 2. Position X et Y
 # ==========================
-axs[0, 1].plot(t,x,label="x real")
+axs[0, 1].plot(t_range,np.array(l_x),label="x real")
 
-axs[0, 1].plot(t,x_d_values,"--", label="x desired")
+axs[0, 1].plot(t_range,x_d_values,"--", label="x desired")
 
 axs[0, 1].plot(
-    t,
-    y,
+    t_range,
+    np.array(l_y),
     label="y real"
 )
 
-axs[0, 1].plot(t,y_d_values,"--",label="y desired")
+axs[0, 1].plot(t_range,y_d_values,"--",label="y desired")
 
 axs[0, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red", label=f"wind {DIST_FORCE[0]:.0f}N")
 axs[0, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
@@ -181,8 +159,8 @@ axs[0, 1].legend()
 # ==========================
 # 3. Altitude
 # ==========================
-axs[1, 0].plot(t, z, label="z real")
-axs[1, 0].plot(t, z_d_values, "--", label=f"z desired ({z_d_target} m)")
+axs[1, 0].plot(t_range, np.array(l_z), label="z real")
+axs[1, 0].plot(t_range, z_d_values, "--", label=f"z desired ({z_d_target} m)")
 
 axs[1, 0].set_title("Altitude")
 axs[1, 0].set_xlabel("Time [s]")
@@ -193,13 +171,13 @@ axs[1, 0].legend()
 # ==========================
 # 4. Attitude
 # ==========================
-axs[1, 1].plot(t,np.rad2deg(phi),label="φ real")
+axs[1, 1].plot(t_range,np.rad2deg(np.array(l_phi)),label="φ real")
 
-axs[1, 1].plot(t,np.rad2deg(phi_d_values),"--",label="φ desired")
+axs[1, 1].plot(t_range,np.rad2deg(phi_d_values),"--",label="φ desired")
 
-axs[1, 1].plot(t,np.rad2deg(theta),label="θ real")
+axs[1, 1].plot(t_range,np.rad2deg(np.array(l_theta)),label="θ real")
 
-axs[1, 1].plot(t,np.rad2deg(theta_d_values),"--",label="θ desired")
+axs[1, 1].plot(t_range,np.rad2deg(theta_d_values),"--",label="θ desired")
 
 axs[1, 1].set_title("Attitude")
 axs[1, 1].set_xlabel("Time [s]")
@@ -210,10 +188,10 @@ axs[1, 1].legend()
 # ==========================
 # 5. Control Signals
 # ==========================
-axs[2, 0].plot(t, f_values,label = "f")
-axs[2,0].plot(t, tau_values[:,0], label="M_φ")
-axs[2,0].plot(t, tau_values[:,1], label="M_θ")
-axs[2,0].plot(t, tau_values[:,2], label="M_ψ")
+axs[2, 0].plot(t_range, f_values,label = "f")
+axs[2,0].plot(t_range, tau_values[:,0], label="M_φ")
+axs[2,0].plot(t_range, tau_values[:,1], label="M_θ")
+axs[2,0].plot(t_range, tau_values[:,2], label="M_ψ")
 
 axs[2, 0].set_title("Control Signals")
 axs[2, 0].set_xlabel("Time [s]")
@@ -223,9 +201,9 @@ axs[2, 0].legend()
 # ==========================
 # 5. Error Following
 # ==========================
-axs[2, 1].plot(t, e_x, label="error x")
-axs[2, 1].plot(t, e_y, label="error y")
-axs[2, 1].plot(t, e_xy, "k--", linewidth=0.8, label="||e_xy||")
+axs[2, 1].plot(t_range, e_x, label="error x")
+axs[2, 1].plot(t_range, e_y, label="error y")
+axs[2, 1].plot(t_range, e_xy, "k--", linewidth=0.8, label="||e_xy||")
 
 # Disturbance window
 axs[2, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red")
