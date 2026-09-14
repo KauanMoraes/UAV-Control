@@ -6,8 +6,10 @@ from control import Controller
 from Trajectory import circular_trajectory, line_trajectory, z_rampa
 
 trajectory = circular_trajectory
-dt = 0.01
+dt = 0.005
+periodo_controle = 10 # em milissegundos
 t_end = 25
+cont = 0
 controller = Controller(delta_t = dt, trajectory=trajectory)
 closed_loop_dynamics, xy_controller= controller.closed_loop_dynamics,controller.xy_controller,
 control_z,outer_controller = controller.control_z, controller.outer_controller
@@ -34,6 +36,8 @@ l_psi = []
 t_range = np.arange(0, t_end, controller.delta_t)
 for t in t_range:
     states_history.append(state)
+    if int(1000*t)%periodo_controle==0:
+        controller.calculate_control(state, t)
     controller.update_integrals(state)
     sol = solve_ivp(closed_loop_dynamics, 
                      [t, t + controller.delta_t], state, t_eval=[t + controller.delta_t])

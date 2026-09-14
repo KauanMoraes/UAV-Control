@@ -174,7 +174,7 @@ class Controller:
         self.intgr_e_vy = np.clip(self.mem_intgr_e_vy, -self.intgr_limit, self.intgr_limit)
         self.intgr_e_vz = np.clip(self.mem_intgr_e_vz, -self.intgr_limit, self.intgr_limit)
 
-    def closed_loop_dynamics(self, t, state):
+    def calculate_control(self, state, t):
         self.x_d, self.y_d, self.z_d = self.traj_fn(t)
         # Como o solver Runge-Kutta do solve_ivp avalia vários sub-passos no tempo,
         # salvar um estado anterior (old_vx_d) diretamente aqui dentro não funciona 
@@ -200,17 +200,17 @@ class Controller:
             self.vx_d,
             self.vy_d,
             self.ax_d,
-            self.ay_d
-        )
+            self.ay_d)
         tau_phi, tau_theta, tau_psi = self.attitude_controller(
             state,
             self.phi_d,
             self.theta_d,
             psi_d=0.0,
-            vpsi_d=0.0
-        )
-
+            vpsi_d=0.0)
         self.control = np.array([self.f, tau_phi, tau_theta, tau_psi])
+
+    def closed_loop_dynamics(self, t, state):
+        
         state_dot = drone_dynamics(t, state[:12], self.control)
 
         # Apply wind disturbance as external force on velocity states
