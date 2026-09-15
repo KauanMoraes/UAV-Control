@@ -5,6 +5,7 @@ from scipy.integrate import solve_ivp
 from Trajectory import circular_trajectory, line_trajectory
 from config import m, g, Jja,Jjb
 from dynamics import drone_dynamics
+from filter import LowPassFilter
 
 class Controller:
     def __init__(self, delta_t, trajectory = line_trajectory):
@@ -51,6 +52,9 @@ class Controller:
         self.DIST_START = 10.0                          # onset time [s]
         self.DIST_END   = 20.0                         # end time [s]
 
+        self.p_filter = LowPassFilter(dt=self.delta_t, f_corte=60.0, initial_value=0.0)
+        self.q_filter = LowPassFilter(dt=self.delta_t, f_corte=60.0, initial_value=0.0)
+
         # References
         self.x_d = 0.0
         self.y_d = 0.0
@@ -60,6 +64,7 @@ class Controller:
         self.vz_d = 0.0
         self.phi_d = 0.0
         self.theta_d = 0.0
+        self.psi_d = 0.0
         self.control = np.zeros(4)
 
         self.intgr_limit = 5.0  # Limit for the integral term to prevent windup
@@ -139,9 +144,12 @@ class Controller:
         p = state[9]
         q = state[10]
         r = state[11]
+        q_filtrado = self.q_filter.update(q)
+        p_filtrado = self.p_filter.update(p)
+
         # Law for attitude control, with a PD controller
-        U_phi = self.KP_PHI * (phi_d - phi) - self.KD_PHI * p 
-        U_theta = self.KP_THETA * (theta_d - theta) - self.KD_THETA * q
+        U_phi = self.KP_PHI * (phi_d - phi) - self.KD_PHI * p_filtrado
+        U_theta = self.KP_THETA * (theta_d - theta) - self.KD_THETA * q_filtrado
         U_psi = self.KP_PSI * (psi_d - psi) - self.KD_PSI * (r-vpsi_d)
 
         tau_phi = q*r*(Jja[2,2]-Jja[1,1]) + U_phi*Jjb[0,0]
