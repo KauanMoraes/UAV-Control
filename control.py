@@ -52,8 +52,8 @@ class Controller:
         self.DIST_START = 10.0                          # onset time [s]
         self.DIST_END   = 20.0                         # end time [s]
 
-        self.p_filter = LowPassFilter(dt=self.delta_t, f_corte=60.0, initial_value=0.0)
-        self.q_filter = LowPassFilter(dt=self.delta_t, f_corte=60.0, initial_value=0.0)
+        self.p_filter = LowPassFilter(dt=self.delta_t, f_corte=30.0, initial_value=0.0)
+        self.q_filter = LowPassFilter(dt=self.delta_t, f_corte=30.0, initial_value=0.0)
 
         # References
         self.x_d = 0.0
