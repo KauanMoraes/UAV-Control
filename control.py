@@ -50,7 +50,7 @@ class Controller:
         # Disturbance — wind step force in inertial frame [N]
         self.DIST_FORCE = np.array([2.0, 0.0, 2.0])  # 3N in X  o controle theta satura
         self.DIST_START = 10.0                          # onset time [s]
-        self.DIST_END   = 20.0                         # end time [s]
+        self.DIST_END   = 10.0                         # end time [s]
 
         self.p_filter = LowPassFilter(dt=self.delta_t, f_corte=30.0, initial_value=0.0)
         self.q_filter = LowPassFilter(dt=self.delta_t, f_corte=30.0, initial_value=0.0)

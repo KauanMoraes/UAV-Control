@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 from control import Controller 
-from Trajectory import circular_trajectory, line_trajectory, z_rampa
+from Trajectory import circular_trajectory, line_trajectory, z_rampa, spiral_trajectory
 
-trajectory = circular_trajectory
+trajectory = spiral_trajectory
 dt = 0.005
-periodo_controle = 10000 # em microssegundos
+periodo_controle = 5000 # em microssegundos
 t_end = 25
 cont = 0
 controller = Controller(delta_t = dt, trajectory=trajectory)
