@@ -5,7 +5,7 @@ from scipy.integrate import solve_ivp
 from control import Controller 
 from Trajectory import circular_trajectory, line_trajectory, z_rampa, spiral_trajectory
 
-trajectory = spiral_trajectory
+trajectory = circular_trajectory
 dt = 0.005
 periodo_controle = 5000 # em microssegundos
 t_end = 25
@@ -225,4 +225,5 @@ axs[2, 1].grid(True)
 axs[2, 1].legend()
 
 plt.tight_layout()
+plt.savefig("Figures/test1",)
 plt.show()

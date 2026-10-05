@@ -67,7 +67,7 @@ class Controller:
         self.psi_d = 0.0
         self.control = np.zeros(4)
 
-        self.intgr_limit = 5.0  # Limit for the integral term to prevent windup
+        self.intgr_limit = 0.5  # Limit for the integral term to prevent windup
         self.mem_intgr_e_vx = 0.0  # variável de memória para o termo integral do erro de velocidade em x
         self.mem_intgr_e_vy = 0.0
         self.mem_intgr_e_vz = 0.0
@@ -148,8 +148,8 @@ class Controller:
         p_filtrado = self.p_filter.update(p)
 
         # Law for attitude control, with a PD controller
-        U_phi = self.KP_PHI * (phi_d - phi) - self.KD_PHI * p_filtrado
-        U_theta = self.KP_THETA * (theta_d - theta) - self.KD_THETA * q_filtrado
+        U_phi = self.KP_PHI * (phi_d - phi) - self.KD_PHI * p#_filtrado
+        U_theta = self.KP_THETA * (theta_d - theta) - self.KD_THETA * q#_filtrado
         U_psi = self.KP_PSI * (psi_d - psi) - self.KD_PSI * (r-vpsi_d)
 
         tau_phi = q*r*(Jja[2,2]-Jja[1,1]) + U_phi*Jjb[0,0]
@@ -189,9 +189,9 @@ class Controller:
         # A derivada exata de vx_d = KPO * (x_d - x) é ax_d = KPO * (dot_x_d - v_x).
         dt_sim = self.delta_t/3
         x_d_old, y_d_old, z_d_old = self.traj_fn(t - dt_sim) if t>0 else self.traj_fn(t)
-        self.dot_x_d = np.min([(self.x_d - x_d_old) / dt_sim, 10.0]) # Limit the derivative to avoid numerical issues
-        self.dot_y_d = np.min([(self.y_d - y_d_old) / dt_sim, 10.0])
-        self.dot_z_d = np.min([(self.z_d - z_d_old) / dt_sim, 10.0])
+        self.dot_x_d = np.clip((self.x_d - x_d_old) / dt_sim, -10.0,10.0) # Limit the derivative to avoid numerical issues
+        self.dot_y_d = np.clip((self.y_d - y_d_old) / dt_sim, -10.0,10.0)
+        self.dot_z_d = np.clip((self.z_d - z_d_old) / dt_sim, -10.0,10.0)
         KPO  = self.KPO
         self.ax_d = KPO * (self.dot_x_d - state[3])
         self.ay_d = KPO * (self.dot_y_d - state[4])
