@@ -3,8 +3,8 @@ import numpy as np
 g = 9.81
 
 m = 1.5  # drone mass [kg]
-d_uav = 0.2
-h_uav = 0
+d_uav = 0.2 # drone radius [m]
+h_uav = 0 # drone height [m]
 J = np.diag([
     0.025,  # Jx
     0.025,  # Jy

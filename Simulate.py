@@ -5,7 +5,9 @@ from scipy.integrate import solve_ivp
 from control import Controller 
 from Trajectory import circular_trajectory, line_trajectory, z_rampa, spiral_trajectory
 
+# d = {circular_trajectory: "circular", line_trajectory: "line", z_rampa: "z_rampa", spiral_trajectory: "spiral"}
 trajectory = circular_trajectory
+fig_name = ""
 dt = 0.005
 periodo_controle = 5000 # em microssegundos
 t_end = 25
@@ -225,5 +227,4 @@ axs[2, 1].grid(True)
 axs[2, 1].legend()
 
 plt.tight_layout()
-plt.savefig("Figures/test1",)
-plt.show()
+plt.savefig(f"Figures/{fig_name}.png",bbox_inches="tight", dpi=200)
