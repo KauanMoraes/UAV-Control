@@ -1,0 +1,22 @@
+\frametitle{Ambiente de Simulação}
+\begin{itemize}
+    \item Python + \texttt{scipy.integrate.solve\_ivp} (RK45).
+    \item Vetor de estados: 12 estados (posição, velocidade, ângulos de Euler,
+          velocidades angulares)
+    \item Núcleo: função \texttt{closed\_loop\_dynamics}.
+  \end{itemize}
+ \vspace{0.3cm}
+  \textbf{Configurações do Drone}
+\begin{minted}{python}
+g = 9.81
+m = 1.5  # drone mass [kg]
+d_uav = 0.2 # drone radius [m]
+h_uav = 0 # drone height [m]
+J = np.diag([
+    0.025,  # Jx
+    0.025,  # Jy
+    0.045   # Jz
+])
+
+\end{minted}
+% TODO: tabela de parâmetros do VANT simulado (massa, inércias, etc.)
