@@ -49,7 +49,7 @@ class Controller:
 
         # Disturbance — wind step force in inertial frame [N]
         self.wind_intsty = 1.0  # Wind intensity factor
-        self.DIST_FORCE = np.array([2.0, 0.0, 2.0])*self.wind_intsty  # 3N in X  o controle theta satura
+        self.DIST_FORCE = np.array([2.0, 0.0, -2.0])*self.wind_intsty  # 3N in X  o controle theta satura
         self.DIST_START = 10.0                          # onset time [s]
         self.DIST_END   = 20.0                         # end time [s]
 
@@ -174,11 +174,11 @@ class Controller:
         self.e_vz = self.vz_d - state[5]
 
         self.mem_intgr_e_vx += dt_sim * (self.e_vx - self.k_aw * 
-                                     (self.intgr_e_vx - np.clip(self.mem_intgr_e_vx, -self.intgr_limit, self.intgr_limit)))
+                                     (self.mem_intgr_e_vx - np.clip(self.mem_intgr_e_vx, -self.intgr_limit, self.intgr_limit)))
         self.mem_intgr_e_vy += dt_sim * (self.e_vy - self.k_aw * 
-                                     (self.intgr_e_vy - np.clip(self.mem_intgr_e_vy, -self.intgr_limit, self.intgr_limit)))
+                                     (self.mem_intgr_e_vy - np.clip(self.mem_intgr_e_vy, -self.intgr_limit, self.intgr_limit)))
         self.mem_intgr_e_vz += dt_sim * (self.e_vz - self.k_aw * 
-                                     (self.intgr_e_vz - np.clip(self.mem_intgr_e_vz, -self.intgr_limit, self.intgr_limit)))
+                                     (self.mem_intgr_e_vz - np.clip(self.mem_intgr_e_vz, -self.intgr_limit, self.intgr_limit)))
         self.intgr_e_vx = np.clip(self.mem_intgr_e_vx, -self.intgr_limit, self.intgr_limit)
         self.intgr_e_vy = np.clip(self.mem_intgr_e_vy, -self.intgr_limit, self.intgr_limit)
         self.intgr_e_vz = np.clip(self.mem_intgr_e_vz, -self.intgr_limit, self.intgr_limit)
@@ -194,9 +194,9 @@ class Controller:
         self.dot_y_d = np.clip((self.y_d - y_d_old) / dt_sim, -10.0,10.0)
         self.dot_z_d = np.clip((self.z_d - z_d_old) / dt_sim, -10.0,10.0)
         KPO  = self.KPO
-        self.ax_d = KPO * (self.dot_x_d - state[3])
-        self.ay_d = KPO * (self.dot_y_d - state[4])
-        self.az_d = KPO * (self.dot_z_d - state[5])
+        self.ax_d = KPO * (self.dot_x_d - state[3]) # dot_ux
+        self.ay_d = KPO * (self.dot_y_d - state[4]) # dot_uy
+        self.az_d = KPO * (self.dot_z_d - state[5]) # dot_uz
 
         self.vx_d, self.vy_d, self.vz_d = self.outer_controller(state,
                                                 self.x_d, self.y_d, self.z_d)

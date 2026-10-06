@@ -18,9 +18,9 @@ def spiral_trajectory(t, R=2.0, omega=0.5): #1.0): omega 1.0 diverge pois desrei
     return x_d, y_d, z_d
 
 def line_trajectory(t):
-    x_d = 1 * t
-    y_d = 1.0
-    z_d = 1.0
+    x_d = 0.0
+    y_d = 1.0 
+    z_d = 1.0 * t
 
     return x_d, y_d, z_d
 

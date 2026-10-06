@@ -6,8 +6,9 @@ from control import Controller
 from Trajectory import circular_trajectory, line_trajectory, z_rampa, spiral_trajectory
 
 # d = {circular_trajectory: "circular", line_trajectory: "line", z_rampa: "z_rampa", spiral_trajectory: "spiral"}
-trajectory = circular_trajectory
-fig_name = ""
+trajectory = line_trajectory
+_r_traj = 1.0
+fig_name = "line -2z"
 dt = 0.005
 periodo_controle = 5000 # em microssegundos
 t_end = 25
@@ -72,7 +73,7 @@ f_values, tau_values = np.array(f_values), np.array(tau_values)
 # ============================================================
 n_ss = int(len(t_range) * 0.2)  # last 20 % for the stationary state
 
-# --- Z : transitory response (0 → z_d) ---
+# Z 
 z_d_target = z_d_values[-1]
 z_max = np.max(l_z)
 z_overshoot = max(0.0, (z_max - z_d_target) / z_d_target * 100) if z_d_target != 0 else 0.0
@@ -87,7 +88,7 @@ tau_z = t_range[idx_tau[0]] if len(idx_tau) else float('nan')
 
 err_ss_z = abs(z_d_target - np.mean(np.array(l_z)[-n_ss:]))
 
-# --- X, Y : suivi de trajectoire circulaire ---
+# X, Y 
 e_x = x_d_values - np.array(l_x)
 e_y = y_d_values - np.array(l_y)
 e_xy = np.sqrt(e_x**2 + e_y**2)
@@ -95,21 +96,35 @@ e_xy = np.sqrt(e_x**2 + e_y**2)
 err_ss_x = np.mean(np.abs(e_x[-n_ss:]))
 err_ss_y = np.mean(np.abs(e_y[-n_ss:]))
 
-e_xy_peak = np.max(e_xy)
-SEUIL_XY = 0.2  # m — seuil de convergence XY
-idx_conv = np.where(e_xy < SEUIL_XY)[0]
-t_conv_xy = t_range[idx_conv[0]] if len(idx_conv) else float('nan')
+# ex_0 = np.array(np.where(np.abs(e_x) < 0.001)[0])#>100)[0,0]
+# print(f'idx_ex_0: {ex_0}')
+# ey_0 = np.where(np.array(np.where(np.abs(e_y) < 0.001)[0])>100)[0,0]
+
+# print(f'idx_ey_0: {ey_0}')
+# idx_exy_0 = np.min([ex_0, ey_0], axis=0)
+idx_exy_0 = np.where((np.abs(e_x) < 0.001) | (np.abs(e_y) < 0.001))[0][1]
+# idx_ex_0 = np.where(np.abs(e_x) < 0.001)[0][1]
+# idx_ey_0 = np.where(np.abs(e_y) < 0.001)[0][1]
+
+
+Threshold_XY = _r_traj/10  # m — Convergence Threshold XY
+idx_conv = np.where((e_xy > Threshold_XY) & (t_range < DIST_START) & (t_range < DIST_END))[0][-1]
+print(f"idx_conv: {idx_conv}, t_conv: {t_range[idx_conv]:.2f} s")
+t_conv_xy = t_range[idx_conv] 
+#print(f"Convergence Time XY: {t_conv_xy}")
+e_xy_peak_over = np.max(e_xy[idx_exy_0:]) #if len(idx_exy_0) else np.max(e_xy)
 
 print("\n========== Performance Metrics ==========")
 print(f"\n  [Z]  Altitude   (Target : {z_d_target:.1f} m)")
-print(f"       Time Constant (tau)    : {tau_z:.2f} s  (63.2% of z_d)")
+# print(f"       Time Constant (tau)    : {tau_z:.2f} s  (63.2% of z_d)")
 print(f"       Rise Time (10%->90%)   : {tr_z:.2f} s  (~2.2*tau)")
 print(f"       Overshoot              : {z_overshoot:.1f} %")
-print(f"       Steady-State Error     : {err_ss_z*100:.2f} cm")
+if DIST_FORCE[2]==0:
+    print(f"       Steady-State Error     : {err_ss_z*100:.2f} cm")
 print(f"\n  [X]  Steady-State Error (mean) : {err_ss_x*100:.2f} cm")
 print(f"  [Y]  Steady-State Error (mean) : {err_ss_y*100:.2f} cm")
-print(f"\n  [XY] Maximum Tracking Error       : {e_xy_peak:.3f} m")
-print(f"  [XY] Convergence Time      : {t_conv_xy:.2f} s  (threshold <= {SEUIL_XY} m)")
+print(f"\n  [XY] Maximum Tracking Error       : {e_xy_peak_over:.3f} m")
+print(f"  [XY] Convergence Time      : {t_conv_xy:.2f} s  (threshold <= {Threshold_XY} m)")
 print("================================================\n")
 
 
@@ -152,10 +167,10 @@ axs[0, 1].plot(
 )
 
 axs[0, 1].plot(t_range,y_d_values,"--",label="y desired")
-
-axs[0, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red", label=f"wind {DIST_FORCE[0]:.0f}N")
-axs[0, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
-axs[0, 1].axvline(DIST_END,   color="red", linestyle="--", linewidth=0.9)
+if DIST_END > DIST_START:
+    axs[0, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red", label=f"wind {DIST_FORCE[0]:.0f}N")
+    axs[0, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
+    axs[0, 1].axvline(DIST_END,   color="red", linestyle="--", linewidth=0.9)
 axs[0, 1].set_title("Follow XY")
 axs[0, 1].set_xlabel("Time [s]")
 axs[0, 1].set_ylabel("Position [m]")
@@ -212,13 +227,14 @@ axs[2, 1].plot(t_range, e_y, label="error y")
 axs[2, 1].plot(t_range, e_xy, "k--", linewidth=0.8, label="||e_xy||")
 
 # Disturbance window
-axs[2, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red")
-axs[2, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
-axs[2, 1].axvline(DIST_END,   color="red", linestyle="--", linewidth=0.9)
-axs[2, 1].text(
-    (DIST_START + DIST_END) / 2, 0.02,
-    f"wind {DIST_FORCE[0]:.0f}N", ha="center", fontsize=8, color="red"
-)
+if DIST_END > DIST_START:
+    axs[2, 1].axvspan(DIST_START, DIST_END, alpha=0.12, color="red")
+    axs[2, 1].axvline(DIST_START, color="red", linestyle="--", linewidth=0.9)
+    axs[2, 1].axvline(DIST_END,   color="red", linestyle="--", linewidth=0.9)
+    axs[2, 1].text(
+        (DIST_START + DIST_END) / 2, 0.02,
+        f"wind {DIST_FORCE[0]:.0f}N", ha="center", fontsize=8, color="red"
+    )
 
 axs[2, 1].set_title("Error of follow")
 axs[2, 1].set_xlabel("Time [s]")
@@ -227,4 +243,30 @@ axs[2, 1].grid(True)
 axs[2, 1].legend()
 
 plt.tight_layout()
-plt.savefig(f"Figures/{fig_name}.png",bbox_inches="tight", dpi=200)
+plt.savefig(f"Figures/{fig_name}",bbox_inches="tight", dpi=200)
+# ============================================================
+# Exportar Métricas para LaTeX
+# ============================================================
+
+with open(f"metricas/{fig_name}.tex", "w", encoding="utf-8") as f:
+    f.write(r"\begin{itemize}" + "\n")
+    f.write(r"  \item \textbf{Eixo Z (Altitude):}" + "\n")
+    f.write(r"  \begin{itemize}" + "\n")
+    f.write(rf"    \item Overshoot: {z_overshoot:.1f}\%" + "\n")
+    f.write(rf"    \item Tempo de subida: {tr_z:.2f} s (10%-90%)" + "\n")
+    if DIST_FORCE[2] == 0:
+        f.write(rf"    \item Erro em regime: {err_ss_z*100:.2f} cm" + "\n")
+    f.write(r"  \end{itemize}" + "\n")
+    
+    f.write(r"  \item \textbf{Plano XY:}" + "\n")
+    f.write(r"  \begin{itemize}" + "\n")
+    f.write(rf"    \item Erro xy Overshoot: {e_xy_peak_over:.3f} m" + "\n")
+    f.write(rf"    \item Tempo convergência: {t_conv_xy:.2f} (limiar <= {Threshold_XY} m)s" + "\n")
+    f.write(rf"    \item Erro em regime X: {err_ss_x*100:.2f} cm" + "\n")
+    f.write(rf"    \item Erro em regime Y: {err_ss_y*100:.2f} cm" + "\n")
+    f.write(r"  \end{itemize}" + "\n")
+    f.write(r"\end{itemize}" + "\n")
+    
+print(f"Métricas exportadas com sucesso para {fig_name}.tex")
+
+#plt.show()
