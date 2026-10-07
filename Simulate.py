@@ -6,9 +6,9 @@ from control import Controller
 from Trajectory import circular_trajectory, line_trajectory, z_rampa, spiral_trajectory
 
 # d = {circular_trajectory: "circular", line_trajectory: "line", z_rampa: "z_rampa", spiral_trajectory: "spiral"}
-trajectory = line_trajectory
+trajectory = circular_trajectory
 _r_traj = 1.0
-fig_name = "line -2z"
+fig_name = "cvento 2z"
 dt = 0.005
 periodo_controle = 5000 # em microssegundos
 t_end = 25
@@ -243,17 +243,17 @@ axs[2, 1].grid(True)
 axs[2, 1].legend()
 
 plt.tight_layout()
-plt.savefig(f"Figures/{fig_name}",bbox_inches="tight", dpi=200)
+plt.savefig(f"tex/Figures/{fig_name}",bbox_inches="tight", dpi=200)
 # ============================================================
 # Exportar Métricas para LaTeX
 # ============================================================
 
-with open(f"metricas/{fig_name}.tex", "w", encoding="utf-8") as f:
+with open(f"tex/metricas/{fig_name}.tex", "w", encoding="utf-8") as f:
     f.write(r"\begin{itemize}" + "\n")
     f.write(r"  \item \textbf{Eixo Z (Altitude):}" + "\n")
     f.write(r"  \begin{itemize}" + "\n")
     f.write(rf"    \item Overshoot: {z_overshoot:.1f}\%" + "\n")
-    f.write(rf"    \item Tempo de subida: {tr_z:.2f} s (10%-90%)" + "\n")
+    f.write(rf"    \item Tempo de subida: {tr_z:.2f} s (10\%-90\%)" + "\n")
     if DIST_FORCE[2] == 0:
         f.write(rf"    \item Erro em regime: {err_ss_z*100:.2f} cm" + "\n")
     f.write(r"  \end{itemize}" + "\n")
