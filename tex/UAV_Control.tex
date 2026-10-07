@@ -79,9 +79,8 @@
 \begin{frame}{Hipóteses e Aproximações}
   \begin{itemize}
     \item Baixas velocidades de translação $\Rightarrow$ simplificação dos arrastos.
-    \item Ângulos pequenos: roll $\phi$ e pitch $\theta$ restritos (ex.: $< 15^\circ$).
-    \item $\Omega \approx [\dot\phi, \dot\theta, \dot\psi]^T$ sob ângulos pequenos.
-    \item Inércia constante. % TODO: referenciar pág. 9 do livro
+    \item Pequenos ângulos: roll $\phi$ e pitch $\theta$ restritos.
+    \item Inércia e peso constantes. % TODO: referenciar pág. 9 do livro
   \end{itemize}
 \end{frame}
 
@@ -128,8 +127,7 @@
 \label{sec:controle}
 \begin{frame}{Arquitetura de Controle}
     \begin{figure}
-    \centering
-    \includegraphics[width=1.1\textwidth]{figs/full_controller.png}
+    \includegraphics[width=1.0\textwidth]{figs/full_controller.png}
     \caption{Diagrama de Controle}
   \end{figure}
 \end{frame}
@@ -168,13 +166,6 @@
 \end{frame}
 
 
-\begin{frame}{Sintonia Hierárquica dos Ganhos}
-  \begin{enumerate}
-    \item Primeiro, a malha interna é sintonizada. 
-    \item Após sua estabilização, realiza-se a sintonia da malha externa.
-  \end{enumerate}
-\end{frame}
-
 \begin{frame}{Linearização por Realimentação — Altitude}
   Cancela as não linearidades da dinâmica vertical
   $\dot{p}_z = -g + (\cos\phi\cos\theta)\mathcal{M}^{-1}f + \mathcal{D}_z$:
@@ -185,8 +176,14 @@
   $\dot{p}_z = \mathcal{U}_z + \mathcal{D}_z$.
 \end{frame}
 
+\begin{frame}{ Malha Interna de Atitude}
+  \begin{figure}
+    \includegraphics[width=1.03\textwidth]{figs/fig9_roll_pitch_loops.png}
+    \caption{Malhas internas de posição de roll e pitch .}
+  \end{figure}
+\end{frame}
 \begin{frame}{Linearização por Realimentação — Atitude}
-  Anulação dos torques de Coriolis/giroscópicos:
+  Obtenção dos torques de controle $(M_x, M_y, M_z)$ que cancelam as não linearidades da dinâmica de rotação:
   \begin{align}
     J_{bx}^{-1}M_x &= \dot{\theta}\dot{\psi}(J_{az}-J_{ay}) + \mathcal{U}_\phi \\
     J_{by}^{-1}M_y &= \dot{\phi}\dot{\psi}(J_{ax}-J_{az}) + \mathcal{U}_\theta \\
@@ -224,22 +221,14 @@
   (análogo para $\theta$).
 \end{frame}
 
-\begin{frame}{ Malha Interna de Atitude e Sintonia}
+\begin{frame}{Malha de Controle XY}
   \begin{figure}
-    \centering
-    \includegraphics[width=1.1\textwidth]{figs/fig9_roll_pitch_loops.png}
-    \caption{Malhas internas de posição de roll e pitch (Fig.\ 9 do documento).}
+    \includegraphics[width=1.1\textwidth]{figs/fig10_xy_velocity_loop.png}
+    \caption{Malha interna de velocidade $(x,y)$ (Fig.\ 10 do documento).}
   \end{figure}
-  Sintonia (Remarks 8 e 9): alocação de polos com dinâmica dominante $s + a_p = 0$,
-  \begin{equation}
-    s^2 + k_d\,s + k_p = (s + a_p)(s + N a_p)
-    \;\Longrightarrow\;
-    k_d = (N+1)\,a_p, \quad k_p = N a_p^{2}, \quad N > 1
-  \end{equation}
 \end{frame}
 
-
-\begin{frame}{Controle de Velocidade $(x,y)$ (Cap.\ 6.4) — Formulação}
+\begin{frame}{Controle de Velocidade $(x,y)$ — Formulação}
   Dinâmica horizontal reescrita evidenciando a direção do empuxo:
   \begin{equation}
     \begin{bmatrix} \ddot{p}_x \\ \ddot{p}_y \end{bmatrix}
@@ -262,11 +251,9 @@
     \begin{bmatrix} \ddot{p}_x \\ \ddot{p}_y \end{bmatrix}
     \;\approx\; \mathcal{U} + \begin{bmatrix} \mathcal{D}_x \\ \mathcal{D}_y \end{bmatrix}
   \end{equation}
-  Ou seja: \textbf{o controle de posição horizontal é feito inclinando o veículo}
-  — a malha $(x,y)$ gera referências para a malha de atitude.
 \end{frame}
 
-\begin{frame}{Cap.\ 6.4 — Esforços PI com Feedforward}
+\begin{frame}{ Esforços PI com Feedforward}
   $\mathcal{U}_x$ e $\mathcal{U}_y$ são esforços PI que rastreiam as
   velocidades de referência $u_x = \dot{p}_{xd}$ e $u_y = \dot{p}_{yd}$
   (vindas da malha externa):
@@ -310,7 +297,7 @@
             de volta} à faixa linear, impedindo o acúmulo (\emph{windup}).
     \end{itemize}
   \end{block}
-  Versão discreta (Euler, período de amostragem $h$) — eqs.\ (145)--(146) do documento:
+  Versão discreta (Euler, período de amostragem $h$):
   \begin{equation}
     y_i[k] = \operatorname{SAT}(x_i[k]),
     \qquad
@@ -370,76 +357,31 @@
 \section{Resultados}
 
   \begin{frame}{Resultados — Degrau em $y$ + Rampa em $z$; Perturbação: (2,0,-2)}
-      \begin{columns}[c]
-        % Coluna da Esquerda: Gráficos
-        \column{0.7\textwidth}
-          \begin{figure}
-            \centering
-            % Ajuste o nome da figura gerada pelo seu script
-            \includegraphics[width=\textwidth]{Figures/line -2z.png} 
-          \end{figure}
-          
-        % Coluna da Direita: Métricas exportadas
-        \column{0.3\textwidth}
-          \textbf{Desempenho Medido:}\\
-          \vspace{0.3cm}
-          \footnotesize % Reduz o tamanho da fonte para caber bem
-          \input{metricas/line -2z} % Importa o arquivo gerado pelo Python
-      \end{columns}
+    \begin{figure}
+        \centering
+        % Ajuste o nome da figura gerada pelo seu script
+        \includegraphics[width=0.7\textwidth]{Figures/line -2z.png} 
+      \end{figure}
   \end{frame}
   \begin{frame}{Resultados — Trajetória Circular Livre}
-    \begin{columns}[c]
-      % Coluna da Esquerda: Gráficos
-      \column{0.6\textwidth}
-        \begin{figure}
+     \begin{figure}
           \centering
           % Ajuste o nome da figura gerada pelo seu script
-          \includegraphics[width=\textwidth]{Figures/circ_livre.png} 
-        \end{figure}
-        
-      % Coluna da Direita: Métricas exportadas
-      \column{0.4\textwidth}
-        \textbf{Desempenho Medido:}\\
-        \vspace{0.3cm}
-        \footnotesize % Reduz o tamanho da fonte para caber bem
-        \input{metricas/circ_livre} % Importa o arquivo gerado pelo Python
-    \end{columns}
+          \includegraphics[width=0.7\textwidth]{Figures/circ_livre.png} 
+      \end{figure}
   \end{frame}
   \begin{frame}{Resultados — Trajetória Circular Perturbada (2,0,2)}
-    \begin{columns}[c]
-      % Coluna da Esquerda: Gráficos
-      \column{0.6\textwidth}
-        \begin{figure}
-          \centering
+    \begin{figure}
           % Ajuste o nome da figura gerada pelo seu script
-          \includegraphics[width=\textwidth]{Figures/circ_vento.png} 
+          \includegraphics[width=0.7\textwidth]{Figures/circ_vento.png} 
         \end{figure}
-        
-      % Coluna da Direita: Métricas exportadas
-      \column{0.4\textwidth}
-        \textbf{Desempenho Medido:}\\
-        \vspace{0.3cm}
-        \footnotesize % Reduz o tamanho da fonte para caber bem
-        \input{metricas/circ_vento} % Importa o arquivo gerado pelo Python
-    \end{columns}
   \end{frame}
   \begin{frame}{Resultados — Trajetória Circular Perturbada (2,0,-2)}
-    \begin{columns}[c]
-      % Coluna da Esquerda: Gráficos
-      \column{0.6\textwidth}
         \begin{figure}
           \centering
           % Ajuste o nome da figura gerada pelo seu script
-          \includegraphics[width=\textwidth]{Figures/cvento -2z.png} 
+          \includegraphics[width=0.7\textwidth]{Figures/cvento -2z.png} 
         \end{figure}
-        
-      % Coluna da Direita: Métricas exportadas
-      \column{0.4\textwidth}
-        \textbf{Desempenho Medido:}\\
-        \vspace{0.3cm}
-        \footnotesize % Reduz o tamanho da fonte para caber bem
-        \input{metricas/cvento -2z} % Importa o arquivo gerado pelo Python
-    \end{columns}
   \end{frame}  
 
 
@@ -467,7 +409,7 @@
   \begin{frame}{Referências}
     \begin{thebibliography}{9}
       \bibitem{Peixoto}
-        A. J. Peixoto,
+        PEIXOTO, Alessandro J.,
         \emph{UAV Modelling and Control}, 2025.
       \bibitem{Erick}
       PFEIFER, Erick. Projeto e controle de um UAV quadrirotor. 2013. Dissertação (Mestrado em Engenharia de Sistemas) - Escola Politécnica, Universidade de São Paulo, São Paulo, 2013. doi:10.11606/D.3.2013.tde-06072014-223705. Acesso em: 2026-10-05.
