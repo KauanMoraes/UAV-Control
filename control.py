@@ -49,7 +49,7 @@ class Controller:
 
         # Disturbance — wind step force in inertial frame [N]
         self.wind_intsty = 1.0  # Wind intensity factor
-        self.DIST_FORCE = np.array([2.0, 0.0, 2.0])*self.wind_intsty  # 3N in X  o controle theta satura
+        self.DIST_FORCE = np.array([3.0, 0.0, -5.0])*self.wind_intsty  # 3N in X  o controle theta satura
         self.DIST_START = 10.0                          # onset time [s]
         self.DIST_END   = 20.0                         # end time [s]
 

@@ -19,6 +19,7 @@
 \usepackage[brazilian]{babel}
 \usepackage{lmodern}
 \usepackage{amsmath, amssymb}
+%\usepackage[alf]{abntex2cite}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{listings}                        % troque por minted se preferir
@@ -128,7 +129,7 @@
 \begin{frame}{Arquitetura de Controle}
     \begin{figure}
     \includegraphics[width=1.0\textwidth]{figs/full_controller.png}
-    \caption{Diagrama de Controle}
+    \caption{Diagrama de Controle. Fonte: \cite{Peixoto}.}
   \end{figure}
 \end{frame}
 \begin{frame}{Fluxo de Execução}
@@ -179,7 +180,7 @@
 \begin{frame}{ Malha Interna de Atitude}
   \begin{figure}
     \includegraphics[width=1.03\textwidth]{figs/fig9_roll_pitch_loops.png}
-    \caption{Malhas internas de posição de roll e pitch .}
+    \caption{Malhas internas de posição de roll e pitch. Fonte: \cite{Peixoto}.}
   \end{figure}
 \end{frame}
 \begin{frame}{Linearização por Realimentação — Atitude}
@@ -224,7 +225,7 @@
 \begin{frame}{Malha de Controle XY}
   \begin{figure}
     \includegraphics[width=1.1\textwidth]{figs/fig10_xy_velocity_loop.png}
-    \caption{Malha interna de velocidade $(x,y)$ (Fig.\ 10 do documento).}
+    \caption{Malha interna de velocidade $(x,y)$. Fonte: \cite{Peixoto}.}
   \end{figure}
 \end{frame}
 
@@ -313,7 +314,7 @@
 \section{Arquitetura de Simulação}
 
 
-\begin{frame}{Simulações realizadas e Métricas}
+\begin{frame}{Simulações realizadas e Figuras de Mérito}
   \begin{columns}[t]
     \column{0.55\textwidth}
       \textbf{Trajetórias}
@@ -342,7 +343,7 @@
 
       \end{itemize}
     \column{0.45\textwidth}
-      \textbf{Métricas}
+      \textbf{Figuras de Mérito}
       \begin{itemize}
         \item Ultrapassagem (\textit{overshoot})
         \item Tempo de acomodação
@@ -408,21 +409,26 @@
 
   \begin{frame}{Referências}
     \begin{thebibliography}{9}
-      \bibitem{Peixoto}
+      \bibitem[Peixoto (2025)]{Peixoto}
         PEIXOTO, Alessandro J.,
         \emph{UAV Modelling and Control}, 2025.
-      \bibitem{Erick}
+      \bibitem[Pfeifer (2013)]{Erick}
       PFEIFER, Erick. Projeto e controle de um UAV quadrirotor. 2013. Dissertação (Mestrado em Engenharia de Sistemas) - Escola Politécnica, Universidade de São Paulo, São Paulo, 2013. doi:10.11606/D.3.2013.tde-06072014-223705. Acesso em: 2026-10-05.
-      \bibitem{Jacoud}
+      \bibitem[Peixoto et al. (2024)]{Jacoud}
       PEIXOTO, Alessandro J.; SERRANTOLA, Wenderson G.; LIZARRALDE, Fernando. Dynamic Smooth Sliding Control Applied to UAV Trajectory Tracking. IEEE Access, v. 12, p. 44306–44324, 2024. DOI: 10.1109/ACCESS.2024.3380918.
 
     \end{thebibliography}
+    \end{frame} 
+  
+  \begin{frame}
+    \vspace{1cm}
+    \centering
+      \Huge Obrigado!\\[0.5cm]
+      \large Perguntas?\\
+    \vspace{3cm}  
+    \hspace{6.5cm}
     kauancdmoraes1@matematica.ufrj.br
-    \vspace{2cm}
-    \hspace{9cm}
-    \Huge Obrigado!\\[0.5cm]
-    
-  \end{frame}
+    \end{frame}
 
 
 \end{document}

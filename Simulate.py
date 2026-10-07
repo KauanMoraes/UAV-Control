@@ -7,8 +7,8 @@ from Trajectory import circular_trajectory, line_trajectory, z_rampa, spiral_tra
 
 # d = {circular_trajectory: "circular", line_trajectory: "line", z_rampa: "z_rampa", spiral_trajectory: "spiral"}
 trajectory = circular_trajectory
-_r_traj = 1.0
-fig_name = "cvento 2z"
+_r_traj = 2.0
+fig_name = "cvento -5z"
 dt = 0.005
 periodo_controle = 5000 # em microssegundos
 t_end = 25
