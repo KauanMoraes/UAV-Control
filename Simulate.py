@@ -7,8 +7,8 @@ from Trajectory import circular_trajectory, line_trajectory, z_rampa, spiral_tra
 
 # d = {circular_trajectory: "circular", line_trajectory: "line", z_rampa: "z_rampa", spiral_trajectory: "spiral"}
 trajectory = circular_trajectory
-_r_traj = 2.0
-fig_name = "cvento -5z"
+_r_traj = 1.0
+fig_name = "dist_cvento 2z"
 dt = 0.005
 periodo_controle = 5000 # em microssegundos
 t_end = 25
@@ -109,8 +109,10 @@ idx_exy_0 = np.where((np.abs(e_x) < 0.001) | (np.abs(e_y) < 0.001))[0][1]
 
 Threshold_XY = _r_traj/10  # m — Convergence Threshold XY
 idx_conv = np.where((e_xy > Threshold_XY) & (t_range < DIST_START) & (t_range < DIST_END))[0][-1]
+dist_idx_conv = np.where((e_xy > Threshold_XY) & (t_range > DIST_START))[0][-1]
 print(f"idx_conv: {idx_conv}, t_conv: {t_range[idx_conv]:.2f} s")
-t_conv_xy = t_range[idx_conv] 
+t_conv_xy = t_range[idx_conv]
+dist_t_conv_xy = t_range[dist_idx_conv]-DIST_START 
 #print(f"Convergence Time XY: {t_conv_xy}")
 e_xy_peak_over = np.max(e_xy[idx_exy_0:]) #if len(idx_exy_0) else np.max(e_xy)
 
@@ -125,6 +127,7 @@ print(f"\n  [X]  Steady-State Error (mean) : {err_ss_x*100:.2f} cm")
 print(f"  [Y]  Steady-State Error (mean) : {err_ss_y*100:.2f} cm")
 print(f"\n  [XY] Maximum Tracking Error       : {e_xy_peak_over:.3f} m")
 print(f"  [XY] Convergence Time      : {t_conv_xy:.2f} s  (threshold <= {Threshold_XY} m)")
+print(f"  [XY] Disturbance Convergence Time (dist) : {dist_t_conv_xy:.2f} s  (threshold <= {Threshold_XY} m)")
 print("================================================\n")
 
 
@@ -260,8 +263,11 @@ with open(f"tex/metricas/{fig_name}.tex", "w", encoding="utf-8") as f:
     
     f.write(r"  \item \textbf{Plano XY:}" + "\n")
     f.write(r"  \begin{itemize}" + "\n")
-    f.write(rf"    \item Erro xy Overshoot: {e_xy_peak_over:.3f} m" + "\n")
-    f.write(rf"    \item Tempo convergência: {t_conv_xy:.2f} (limiar <= {Threshold_XY} m)s" + "\n")
+    if DIST_END > DIST_START:
+        f.write(rf"    \item Tempo resposta a perturbação: {dist_t_conv_xy:.2f} s (limiar <= {Threshold_XY} m)" + "\n")
+    else:
+        f.write(rf"    \item Erro xy Overshoot: {e_xy_peak_over:.3f} m" + "\n")
+        f.write(rf"    \item Tempo convergência: {t_conv_xy:.2f} (limiar <= {Threshold_XY} m)s" + "\n")
     f.write(rf"    \item Erro em regime X: {err_ss_x*100:.2f} cm" + "\n")
     f.write(rf"    \item Erro em regime Y: {err_ss_y*100:.2f} cm" + "\n")
     f.write(r"  \end{itemize}" + "\n")

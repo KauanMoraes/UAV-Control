@@ -358,31 +358,76 @@
 \section{Resultados}
 
   \begin{frame}{Resultados — Degrau em $y$ + Rampa em $z$; Perturbação: (2,0,-2)}
-    \begin{figure}
-        \centering
-        % Ajuste o nome da figura gerada pelo seu script
-        \includegraphics[width=0.7\textwidth]{Figures/line -2z.png} 
-      \end{figure}
+      \begin{columns}[c]
+        % Coluna da Esquerda: Gráficos
+        \column{0.7\textwidth}
+          \begin{figure}
+            \centering
+            % Ajuste o nome da figura gerada pelo seu script
+            \includegraphics[width=\textwidth]{Figures/line -2z.png} 
+          \end{figure}
+          
+        % Coluna da Direita: Métricas exportadas
+        \column{0.3\textwidth}
+          \textbf{Desempenho Medido:}\\
+          \vspace{0.3cm}
+          \footnotesize % Reduz o tamanho da fonte para caber bem
+          \input{metricas/line -2z} % Importa o arquivo gerado pelo Python
+      \end{columns}
   \end{frame}
   \begin{frame}{Resultados — Trajetória Circular Livre}
-     \begin{figure}
-          \centering
-          % Ajuste o nome da figura gerada pelo seu script
-          \includegraphics[width=0.7\textwidth]{Figures/circ_livre.png} 
-      \end{figure}
-  \end{frame}
-  \begin{frame}{Resultados — Trajetória Circular Perturbada (2,0,2)}
-    \begin{figure}
-          % Ajuste o nome da figura gerada pelo seu script
-          \includegraphics[width=0.7\textwidth]{Figures/circ_vento.png} 
-        \end{figure}
-  \end{frame}
-  \begin{frame}{Resultados — Trajetória Circular Perturbada (2,0,-2)}
+    \begin{columns}[c]
+      % Coluna da Esquerda: Gráficos
+      \column{0.7\textwidth}
         \begin{figure}
           \centering
           % Ajuste o nome da figura gerada pelo seu script
-          \includegraphics[width=0.7\textwidth]{Figures/cvento -2z.png} 
+          \includegraphics[width=\textwidth]{Figures/circ_livre.png} 
         \end{figure}
+        
+      % Coluna da Direita: Métricas exportadas
+      \column{0.3\textwidth}
+        \textbf{Desempenho Medido:}\\
+        \vspace{0.1cm}
+        \footnotesize % Reduz o tamanho da fonte para caber bem
+        \input{metricas/circ_livre} % Importa o arquivo gerado pelo Python
+    \end{columns}
+  \end{frame}
+  \begin{frame}{Resultados — Trajetória Circular Perturbada (2,0,2)}
+    \begin{columns}[c]
+      % Coluna da Esquerda: Gráficos
+      \column{0.7\textwidth}
+        \begin{figure}
+          \centering
+          % Ajuste o nome da figura gerada pelo seu script
+          \includegraphics[width=\textwidth]{Figures/dist_cvento 2z.png} 
+        \end{figure}
+        
+      % Coluna da Direita: Métricas exportadas
+      \column{0.3\textwidth}
+        \textbf{Desempenho Medido:}\\
+        \vspace{0.2cm}
+        \footnotesize % Reduz o tamanho da fonte para caber bem
+        \input{metricas/dist_cvento 2z} % Importa o arquivo gerado pelo Python
+    \end{columns}
+  \end{frame}
+  \begin{frame}{Resultados — Trajetória Circular Perturbada (2,0,-2)}
+    \begin{columns}[c]
+      % Coluna da Esquerda: Gráficos
+      \column{0.7\textwidth}
+        \begin{figure}
+          \centering
+          % Ajuste o nome da figura gerada pelo seu script
+          \includegraphics[width=\textwidth]{Figures/dist_cvento -2z.png} 
+        \end{figure}
+        
+      % Coluna da Direita: Métricas exportadas
+      \column{0.3\textwidth}
+        \textbf{Desempenho Medido:}\\
+        \vspace{0.2cm}
+        \footnotesize % Reduz o tamanho da fonte para caber bem
+        \input{metricas/dist_cvento -2z} % Importa o arquivo gerado pelo Python
+    \end{columns}
   \end{frame}  
 
 
