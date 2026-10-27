@@ -211,6 +211,16 @@ tempCodeRunnerFile.py
 # PyPI configuration file
 .pypirc
 
+# Latex
+*.aux
+*.bbl
+*.blg
+*.snm
+*.nav
+*.toc
+*.vrb
+*.out
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
