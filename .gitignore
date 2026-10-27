@@ -212,14 +212,14 @@ tempCodeRunnerFile.py
 .pypirc
 
 # Latex
-*.aux
-*.bbl
-*.blg
-*.snm
-*.nav
-*.toc
-*.vrb
-*.out
+tex/*.aux
+tex/*.bbl
+tex/*.blg
+tex/*.snm
+tex/*.nav
+tex/*.toc
+tex/*.vrb
+tex/*.out
 
 # Marimo
 marimo/_static/
